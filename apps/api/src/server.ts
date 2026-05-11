@@ -73,7 +73,7 @@ function maskSuperuser(superuser?: User) {
 }
 
 function ensureDataDir() {
-  const dir = path.resolve(process.cwd(), "apps/api/data");
+  const dir = path.resolve(process.cwd(), "data");
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
