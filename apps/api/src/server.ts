@@ -3,7 +3,7 @@ import path from "node:path";
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
-import { compareSync, hashSync } from "bcryptjs";
+import bcrypt from "bcryptjs";
 import { v4 as uuid } from "uuid";
 import { z } from "zod";
 import { createServer } from "node:http";
@@ -15,6 +15,8 @@ import { buildMeetingSummary } from "./services/ai.js";
 import { createPdfFromText } from "./services/pdf.js";
 import { sendSummaryEmail } from "./services/email.js";
 import type { Attachment, ChatMessage, PreferredDate, Role } from "./types.js";
+
+const { compareSync, hashSync } = bcrypt;
 
 initializeSeedData();
 

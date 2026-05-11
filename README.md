@@ -21,6 +21,9 @@ Production-ready MVP for a mediated appointment workflow where admin controls ap
 - Realtime chat with Socket.IO + offline persistence + delivery/read timestamps
 - Pending-only reschedule requests
 - Persistent JSON datastore with runtime data directory
+- PostgreSQL migration path with schema versioning (`apps/api/migrations`)
+- CI/CD pipeline for test/build + container publish (`.github/workflows/ci-cd.yml`)
+- Hardened HTTPS reverse proxy profile with secret-file support
 
 ## Stack
 
@@ -31,6 +34,23 @@ Production-ready MVP for a mediated appointment workflow where admin controls ap
 - Validation/Security: rate limiting + JWT + bcrypt
 - Tests: Vitest + Supertest
 - Deployment: Docker + Docker Compose + Nginx
+
+## Database Migration Path (Schema Versioning)
+
+The app keeps JSON persistence for fast local MVP usage and now includes a PostgreSQL migration path for production evolution.
+
+- SQL migrations live in `apps/api/migrations`
+- Migration runner: `apps/api/src/migrations.ts`
+- CLI command:
+
+```bash
+cd /home/givenchi/Build-Empire
+npm run migrate -w @build-empire/api
+```
+
+- Optional auto-run on server start:
+	- set `DATABASE_URL`
+	- set `AUTO_RUN_MIGRATIONS=true`
 
 ## Local Development
 
@@ -60,6 +80,47 @@ Stop:
 ```bash
 cd /home/givenchi/Build-Empire
 npm run docker:down
+```
+
+## Docker HTTPS + Secrets (Production Overlay)
+
+1. Prepare secrets files (not committed):
+
+```bash
+cd /home/givenchi/Build-Empire
+cp .env.production.example .env
+printf '%s' 'replace-with-strong-jwt-secret' > secrets/jwt_secret.txt
+printf '%s' 'replace-with-admin-password' > secrets/admin_password.txt
+printf '%s' 'replace-with-smtp-password' > secrets/smtp_password.txt
+```
+
+2. Add TLS certificates:
+
+```bash
+mkdir -p infra/certs
+# place fullchain.pem and privkey.pem in infra/certs/
+```
+
+3. Start hardened HTTPS stack:
+
+```bash
+cd /home/givenchi/Build-Empire
+npm run docker:up:prod
+```
+
+4. Stop hardened stack:
+
+```bash
+cd /home/givenchi/Build-Empire
+npm run docker:down:prod
+```
+
+Local compose validation command:
+
+```bash
+cd /home/givenchi/Build-Empire
+npm run docker:config
+docker compose -f docker-compose.yml -f docker-compose.prod.yml config
 ```
 
 ## Default Admin Credentials
@@ -105,3 +166,4 @@ Override in production using compose/env vars.
 - Runtime data persists at `apps/api/data` locally, or Docker volume in compose.
 - Configure SMTP vars to send real emails. Without SMTP config, emails use transport fallback for safe testing.
 - Set a strong `JWT_SECRET` for production.
+- CI/CD runs tests + builds on PR and main, and publishes images to GHCR on main pushes.

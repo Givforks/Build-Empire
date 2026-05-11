@@ -1,8 +1,14 @@
 import request from "supertest";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/server.js";
+import { database, initializeSeedData } from "../src/db.js";
 
 describe("Build-Empire API", () => {
+  beforeEach(() => {
+    database.reset();
+    initializeSeedData();
+  });
+
   it("supports signup/login/create appointment/generate AI summary", async () => {
     const { app } = createApp();
 

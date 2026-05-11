@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-build_empire}
+      POSTGRES_USER: ${POSTGRES_USER:-build_empire}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - build_empire_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-build_empire} -d ${POSTGRES_DB:-build_empire}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  api:
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      WEB_ORIGIN: ${WEB_ORIGIN:-https://localhost}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-build_empire}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-build_empire}
+      AUTO_RUN_MIGRATIONS: "true"
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      ADMIN_PASSWORD_FILE: /run/secrets/admin_password
+      SMTP_PASS_FILE: /run/secrets/smtp_password
+      JWT_SECRET: ""
+      ADMIN_PASSWORD: ""
+      SMTP_PASS: ""
+    secrets:
+      - jwt_secret
+      - admin_password
+      - smtp_password
+
+  web:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./apps/web/nginx.ssl.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./infra/certs:/etc/nginx/certs:ro
+
+secrets:
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
+  admin_password:
+    file: ./secrets/admin_password.txt
+  smtp_password:
+    file: ./secrets/smtp_password.txt
+
+volumes:
+  build_empire_pg_data:

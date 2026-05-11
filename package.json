@@ -13,6 +13,9 @@
     "test": "npm run test -w @build-empire/api",
     "docker:up": "docker compose up -d --build",
     "docker:down": "docker compose down",
-    "docker:logs": "docker compose logs -f"
+    "docker:logs": "docker compose logs -f",
+    "docker:config": "docker compose config",
+    "docker:up:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build",
+    "docker:down:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml down"
   }
 }

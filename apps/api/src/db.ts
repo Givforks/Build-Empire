@@ -1,9 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { v4 as uuid } from "uuid";
-import { hashSync } from "bcryptjs";
+import bcrypt from "bcryptjs";
 import { config } from "./config.js";
 import type { Appointment, ChatMessage, Database, EmailDispatch, RescheduleRequest, User } from "./types.js";
+
+const { hashSync } = bcrypt;
 
 const now = () => new Date().toISOString();
 
