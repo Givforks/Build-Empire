@@ -1,9 +1,9 @@
 export type Role = "client" | "admin" | "superuser";
 
 export type AppointmentStatus =
-  | "REQUESTED"
   | "PENDING_ADMIN_REVIEW"
   | "FORWARDED_TO_SUPERUSER"
+  | "SUPERUSER_RESPONDED"
   | "APPROVED"
   | "REJECTED";
 
@@ -21,17 +21,30 @@ export interface User {
   fullName?: string;
   rank?: string;
   specializations?: string[];
+  state?: string;
+  isActive?: boolean;
+  createdAt: string;
+}
+
+export interface Attachment {
+  id: string;
+  type: "readme" | "pdf" | "other";
+  fileName: string;
+  filePath: string;
+  createdAt: string;
 }
 
 export interface Appointment {
   id: string;
   clientId: string;
+  adminId: string;
   status: AppointmentStatus;
   topic: string;
   preferredDates: PreferredDate[];
   adminDecidedDateTime?: string;
   superuserId?: string;
-  aiReadmePath?: string;
+  attachments: Attachment[];
+  summaryEmailStatus?: "PENDING" | "SENT" | "FAILED";
   createdAt: string;
   updatedAt: string;
 }
@@ -53,5 +66,37 @@ export interface ChatMessage {
   body: string;
   appointmentId?: string;
   createdAt: string;
-  delivered: boolean;
+  deliveredAt?: string;
+  readAt?: string;
+}
+
+export interface AIOutput {
+  id: string;
+  appointmentId: string;
+  clientId: string;
+  prompt: string;
+  summaryText: string;
+  readmeAttachmentId: string;
+  pdfAttachmentId: string;
+  createdAt: string;
+}
+
+export interface EmailDispatch {
+  id: string;
+  appointmentId: string;
+  to: string;
+  subject: string;
+  status: "PENDING" | "SENT" | "FAILED";
+  errorMessage?: string;
+  createdAt: string;
+  sentAt?: string;
+}
+
+export interface Database {
+  users: User[];
+  appointments: Appointment[];
+  reschedules: RescheduleRequest[];
+  chatMessages: ChatMessage[];
+  aiOutputs: AIOutput[];
+  emailDispatches: EmailDispatch[];
 }

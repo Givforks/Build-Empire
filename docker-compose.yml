@@ -1,0 +1,39 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: build-empire-api
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      WEB_ORIGIN: http://localhost:8080
+      JWT_SECRET: build-empire-change-me
+      JWT_EXPIRES_IN: 8h
+      DATA_DIR: /app/data
+      ADMIN_USERNAME: GivenchiCodes
+      ADMIN_PASSWORD: Givenchi1@@@@@
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@build-empire.local}
+    volumes:
+      - build_empire_api_data:/app/data
+    expose:
+      - "4000"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_BASE_URL: ""
+    container_name: build-empire-web
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
+
+volumes:
+  build_empire_api_data:

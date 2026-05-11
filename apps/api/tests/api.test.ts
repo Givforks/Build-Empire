@@ -35,7 +35,8 @@ describe("Build-Empire API", () => {
       });
 
     expect(aiRes.status).toBe(200);
-    expect(aiRes.body.fileName).toContain("summary.md");
+    expect(aiRes.body.attachments).toHaveLength(2);
+    expect(aiRes.body.content).toContain("Meeting Brief");
   });
 
   it("allows admin login with default credentials", async () => {
@@ -47,5 +48,57 @@ describe("Build-Empire API", () => {
 
     expect(adminRes.status).toBe(200);
     expect(adminRes.body.role).toBe("admin");
+  });
+
+  it("enforces pending-only reschedule and supports admin superuser creation", async () => {
+    const { app } = createApp();
+
+    const clientSignup = await request(app).post("/api/auth/signup").send({
+      email: "client2@example.com",
+      password: "ClientPass123!",
+      fullName: "Client Two",
+      preferredDates: [{ date: "2026-07-01", timeSlots: ["10:00"] }]
+    });
+
+    const clientToken = clientSignup.body.token;
+    const createAppointment = await request(app)
+      .post("/api/appointments")
+      .set("Authorization", `Bearer ${clientToken}`)
+      .send({
+        topic: "Need advisory on expansion planning and execution.",
+        preferredDates: [{ date: "2026-07-02", timeSlots: ["11:00"] }]
+      });
+
+    const appointmentId = createAppointment.body.id;
+
+    const adminLogin = await request(app).post("/api/auth/admin-login").send({
+      username: "GivenchiCodes",
+      password: "Givenchi1@@@@@"
+    });
+    const adminToken = adminLogin.body.token;
+
+    const newSuperuser = await request(app)
+      .post("/api/admin/superusers")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        fullName: "Enterprise Expert",
+        email: "enterprise.expert@example.com",
+        password: "EnterprisePass123!",
+        rank: "Principal Consultant",
+        specializations: ["Scale", "Finance"]
+      });
+    expect(newSuperuser.status).toBe(201);
+
+    const decision = await request(app)
+      .post(`/api/admin/appointments/${appointmentId}/decision`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ decision: "APPROVED", adminDecidedDateTime: "2026-07-02T11:00:00Z" });
+    expect(decision.status).toBe(200);
+
+    const reschedule = await request(app)
+      .post(`/api/appointments/${appointmentId}/reschedule`)
+      .set("Authorization", `Bearer ${clientToken}`)
+      .send({ proposedDates: [{ date: "2026-07-04", timeSlots: ["14:00"] }] });
+    expect(reschedule.status).toBe(409);
   });
 });

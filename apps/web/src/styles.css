@@ -13,28 +13,52 @@
 
 body {
   margin: 0;
-  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-family: "Sora", "Poppins", "Segoe UI", sans-serif;
   color: var(--text);
   background:
-    radial-gradient(circle at 10% 10%, rgba(236, 72, 153, 0.18), transparent 45%),
-    radial-gradient(circle at 90% 20%, rgba(107, 70, 193, 0.2), transparent 50%),
+    radial-gradient(circle at 15% 0%, rgba(236, 72, 153, 0.2), transparent 40%),
+    radial-gradient(circle at 92% 8%, rgba(107, 70, 193, 0.2), transparent 42%),
+    linear-gradient(180deg, #eef2ff 0%, #f8faff 100%),
     var(--bg);
 }
 
 .page {
-  max-width: 980px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 2rem 1rem 3rem;
+}
+
+.hero {
+  background: linear-gradient(135deg, var(--navy), var(--purple));
+  color: #fff;
+  border-radius: 16px;
+  padding: 1.2rem;
+  box-shadow: 0 12px 30px rgba(30, 58, 138, 0.22);
 }
 
 header h1 {
   margin: 0;
   font-size: 2rem;
-  color: var(--navy);
 }
 
 header p {
-  margin-top: 0.4rem;
+  margin-top: 0.5rem;
+  opacity: 0.9;
+}
+
+.mode-tabs {
+  margin-top: 0.9rem;
+  display: flex;
+  gap: 0.7rem;
+}
+
+.mode-tabs button {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.mode-tabs button.active {
+  background: var(--pink);
 }
 
 .card {
@@ -57,6 +81,16 @@ header p {
   gap: 0.7rem;
   margin-top: 0.7rem;
   flex-wrap: wrap;
+}
+
+.row.compact {
+  margin-top: 0.4rem;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
 }
 
 input,
@@ -92,11 +126,22 @@ button:disabled {
   opacity: 0.55;
 }
 
-.appointment {
-  border: 1px dashed rgba(30, 58, 138, 0.3);
+.appointment-item {
+  border: 1px solid rgba(30, 58, 138, 0.2);
   border-radius: 10px;
   padding: 0.8rem;
-  margin-top: 0.8rem;
+  margin: 0;
+  text-align: left;
+  background: #fff;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.appointment-item.selected {
+  border-color: var(--purple);
+  box-shadow: 0 0 0 2px rgba(107, 70, 193, 0.15);
 }
 
 pre {
@@ -107,10 +152,28 @@ pre {
   overflow: auto;
 }
 
+.inbox {
+  max-height: 240px;
+  overflow: auto;
+}
+
+.inbox-item {
+  border: 1px solid #dbe3ff;
+  border-radius: 10px;
+  padding: 0.6rem;
+  background: #fbfcff;
+}
+
 footer {
   margin-top: 1rem;
   color: var(--navy);
   font-weight: 600;
+}
+
+.status {
+  padding: 0.8rem;
+  border-radius: 10px;
+  background: rgba(107, 70, 193, 0.08);
 }
 
 @media (max-width: 640px) {

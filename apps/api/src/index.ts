@@ -1,6 +1,7 @@
 import { createApp } from "./server.js";
+import { config } from "./config.js";
 
-const port = Number(process.env.PORT || 4000);
+const port = config.PORT;
 const { httpServer } = createApp();
 
 httpServer.listen(port, () => {

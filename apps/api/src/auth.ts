@@ -1,8 +1,9 @@
 import jwt from "jsonwebtoken";
 import type { Request, Response, NextFunction } from "express";
 import type { Role } from "./types.js";
+import { config } from "./config.js";
 
-const JWT_SECRET = process.env.JWT_SECRET || "build-empire-dev-secret";
+const JWT_SECRET = config.JWT_SECRET;
 
 export interface AuthPayload {
   userId: string;
@@ -10,7 +11,9 @@ export interface AuthPayload {
 }
 
 export function signToken(payload: AuthPayload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "8h" });
+  return jwt.sign(payload, JWT_SECRET, {
+    expiresIn: config.JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"]
+  });
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {

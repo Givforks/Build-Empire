@@ -10,6 +10,9 @@
     "dev:api": "npm run dev -w @build-empire/api",
     "dev:web": "npm run dev -w @build-empire/web",
     "build": "npm run build -ws",
-    "test": "npm run test -w @build-empire/api"
+    "test": "npm run test -w @build-empire/api",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
   }
 }
