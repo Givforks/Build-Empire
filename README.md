@@ -59,6 +59,8 @@ cd /home/givenchi/Build-Empire
 npm install
 cp apps/api/.env.example apps/api/.env
 npm run test
+npm run build
+npm run smoke
 npm run dev:api
 npm run dev:web
 ```
@@ -84,31 +86,28 @@ npm run docker:down
 
 ## Docker HTTPS + Secrets (Production Overlay)
 
-1. Prepare secrets files (not committed):
+Fast bootstrap:
 
 ```bash
 cd /home/givenchi/Build-Empire
-cp .env.production.example .env
-printf '%s' 'replace-with-strong-jwt-secret' > secrets/jwt_secret.txt
-printf '%s' 'replace-with-admin-password' > secrets/admin_password.txt
-printf '%s' 'replace-with-smtp-password' > secrets/smtp_password.txt
+npm run bootstrap:prod
 ```
 
-2. Add TLS certificates:
+This command creates:
+- `.env` from `.env.production.example` when missing
+- `secrets/jwt_secret.txt`
+- `secrets/admin_password.txt`
+- `secrets/smtp_password.txt`
+- self-signed TLS certs in `infra/certs/`
 
-```bash
-mkdir -p infra/certs
-# place fullchain.pem and privkey.pem in infra/certs/
-```
-
-3. Start hardened HTTPS stack:
+Start hardened HTTPS stack:
 
 ```bash
 cd /home/givenchi/Build-Empire
 npm run docker:up:prod
 ```
 
-4. Stop hardened stack:
+Stop hardened stack:
 
 ```bash
 cd /home/givenchi/Build-Empire

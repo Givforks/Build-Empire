@@ -7,5 +7,6 @@ apps/api/data/*.md
 apps/api/apps/
 apps/api/tests/*.js
 apps/api/data/
+apps/api/data-smoke/
 secrets/*.txt
 infra/certs/
