@@ -1,0 +1,15 @@
+{
+  "name": "build-empire",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @build-empire/api & npm run dev -w @build-empire/web",
+    "dev:api": "npm run dev -w @build-empire/api",
+    "dev:web": "npm run dev -w @build-empire/web",
+    "build": "npm run build -ws",
+    "test": "npm run test -w @build-empire/api"
+  }
+}
