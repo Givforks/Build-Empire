@@ -13,8 +13,8 @@ services:
       DATA_DIR: /app/data
       ADMIN_USERNAME: ${ADMIN_USERNAME:-GivenchiCodes}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Givenchi1@@@@@}
-      DATABASE_URL: ${DATABASE_URL:-}
-      AUTO_RUN_MIGRATIONS: ${AUTO_RUN_MIGRATIONS:-false}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-build_empire}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-build_empire}
+      AUTO_RUN_MIGRATIONS: "true"
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
@@ -24,6 +24,8 @@ services:
       - build_empire_api_data:/app/data
     expose:
       - "4000"
+    depends_on:
+      - postgres
 
   web:
     build:
@@ -37,5 +39,22 @@ services:
     ports:
       - "8080:80"
 
+  postgres:
+    image: postgres:16-alpine
+    container_name: build-empire-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-build_empire}
+      POSTGRES_USER: ${POSTGRES_USER:-build_empire}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - build_empire_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-build_empire} -d ${POSTGRES_DB:-build_empire}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
 volumes:
   build_empire_api_data:
+  build_empire_pg_data:

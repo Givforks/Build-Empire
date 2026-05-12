@@ -1,0 +1,261 @@
+// @ts-nocheck
+import { Pool } from "pg";
+import { v4 as uuid } from "uuid";
+import bcrypt from "bcryptjs";
+import { config } from "./config.js";
+import type { Appointment, ChatMessage, Database, EmailDispatch, RescheduleRequest, User } from "./types.js";
+
+const pool = new Pool({ connectionString: config.DATABASE_URL });
+
+const now = () => new Date().toISOString();
+
+async function query<T = any>(text: string, params?: any[]) {
+  const client = await pool.connect();
+  try {
+    const res = await client.query<T>(text, params);
+    return res;
+  } finally {
+    client.release();
+  }
+}
+
+export const database = {
+  get snapshot() {
+    return undefined as unknown as Database;
+  },
+  persist() {
+    return;
+  },
+  async reset() {
+    await query(`TRUNCATE TABLE email_dispatches, ai_outputs, chat_messages, reschedules, appointments, users RESTART IDENTITY CASCADE`);
+  },
+  reload() {
+    return;
+  },
+  async findUserByEmail(email: string) {
+    const res = await query<User>(`SELECT * FROM users WHERE lower(email)=lower($1) LIMIT 1`, [email]);
+    return res.rows[0];
+  },
+  async findAdminByUsername(username: string) {
+    const res = await query<User>(`SELECT * FROM users WHERE role='admin' AND username=$1 LIMIT 1`, [username]);
+    return res.rows[0];
+  },
+  async findFirstAdmin() {
+    const res = await query<User>(`SELECT * FROM users WHERE role='admin' LIMIT 1`);
+    return res.rows[0];
+  },
+  async findSuperusers() {
+    const res = await query<User>(`SELECT * FROM users WHERE role='superuser'`);
+    return res.rows;
+  },
+  async findUserById(id: string) {
+    const res = await query<User>(`SELECT * FROM users WHERE id=$1 LIMIT 1`, [id]);
+    return res.rows[0];
+  },
+  async createUser(payload: Omit<User, "id" | "createdAt">) {
+    const id = uuid();
+    const createdAt = now();
+    let password_hash = null;
+    if ((payload as any).passwordHash) {
+      password_hash = (payload as any).passwordHash;
+    } else if ((payload as any).password) {
+      password_hash = bcrypt.hashSync((payload as any).password, 10);
+    }
+    const specializations = (payload as any).specializations ? JSON.stringify((payload as any).specializations) : null;
+    await query(
+      `INSERT INTO users(id, role, email, username, password_hash, full_name, rank, specializations, state, is_active, created_at)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+      [
+        id,
+        payload.role,
+        payload.email || null,
+        payload.username || null,
+        password_hash,
+        payload.fullName || null,
+        (payload as any).rank || null,
+        specializations,
+        (payload as any).state || null,
+        (payload as any).isActive ?? true,
+        createdAt
+      ]
+    );
+    return { ...payload, id, createdAt, passwordHash: password_hash } as User;
+  },
+  async createAppointment(payload: Omit<Appointment, "id" | "createdAt" | "updatedAt">) {
+    const id = uuid();
+    const createdAt = now();
+    const updatedAt = createdAt;
+    const preferred_dates = JSON.stringify(payload.preferredDates || []);
+    const attachments = JSON.stringify(payload.attachments || []);
+    await query(
+      `INSERT INTO appointments(id, client_id, admin_id, status, topic, preferred_dates, admin_decided_datetime, superuser_id, attachments, summary_email_status, created_at, updated_at)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+      [
+        id,
+        payload.clientId,
+        payload.adminId,
+        payload.status,
+        payload.topic,
+        preferred_dates,
+        payload.adminDecidedDateTime || null,
+        payload.superuserId || null,
+        attachments,
+        (payload as any).summaryEmailStatus || "PENDING",
+        createdAt,
+        updatedAt
+      ]
+    );
+    return { ...payload, id, createdAt, updatedAt } as Appointment;
+  },
+  async updateAppointment(id: string, update: Partial<Appointment>) {
+    const existing = await this.findAppointmentById(id);
+    if (!existing) return undefined;
+    const merged = { ...existing, ...update, updatedAt: now() } as Appointment;
+    await query(
+      `UPDATE appointments SET client_id=$1, admin_id=$2, status=$3, topic=$4, preferred_dates=$5, admin_decided_datetime=$6, superuser_id=$7, attachments=$8, summary_email_status=$9, updated_at=$10 WHERE id=$11`,
+      [
+        merged.clientId,
+        merged.adminId,
+        merged.status,
+        merged.topic,
+        JSON.stringify(merged.preferredDates || []),
+        merged.adminDecidedDateTime || null,
+        merged.superuserId || null,
+        JSON.stringify(merged.attachments || []),
+        (merged as any).summaryEmailStatus || null,
+        merged.updatedAt,
+        id
+      ]
+    );
+    return merged;
+  },
+  async findAppointmentById(id: string) {
+    const res = await query<Appointment>(`SELECT * FROM appointments WHERE id=$1 LIMIT 1`, [id]);
+    const row = res.rows[0];
+    if (!row) return undefined;
+    return {
+      ...row,
+      preferredDates: row.preferred_dates ? JSON.parse(row.preferred_dates) : [],
+      attachments: row.attachments ? JSON.parse(row.attachments) : []
+    } as Appointment;
+  },
+  async listAppointmentsForRole(userId: string, role: User["role"]) {
+    if (role === "admin") {
+      const res = await query<Appointment>(`SELECT * FROM appointments ORDER BY created_at DESC`);
+      return res.rows.map((r) => ({ ...r, preferredDates: r.preferred_dates ? JSON.parse(r.preferred_dates) : [], attachments: r.attachments ? JSON.parse(r.attachments) : [] }));
+    }
+    if (role === "superuser") {
+      const res = await query<Appointment>(`SELECT * FROM appointments WHERE superuser_id=$1 ORDER BY created_at DESC`, [userId]);
+      return res.rows.map((r) => ({ ...r, preferredDates: r.preferred_dates ? JSON.parse(r.preferred_dates) : [], attachments: r.attachments ? JSON.parse(r.attachments) : [] }));
+    }
+    const res = await query<Appointment>(`SELECT * FROM appointments WHERE client_id=$1 ORDER BY created_at DESC`, [userId]);
+    return res.rows.map((r) => ({ ...r, preferredDates: r.preferred_dates ? JSON.parse(r.preferred_dates) : [], attachments: r.attachments ? JSON.parse(r.attachments) : [] }));
+  },
+  async createReschedule(payload: Omit<RescheduleRequest, "id" | "createdAt">) {
+    const id = uuid();
+    const createdAt = now();
+    await query(
+      `INSERT INTO reschedules(id, appointment_id, client_id, proposed_dates, reason, status, created_at) VALUES($1,$2,$3,$4,$5,$6,$7)`,
+      [id, payload.appointmentId, payload.clientId, JSON.stringify(payload.proposedDates || []), payload.reason || null, payload.status, createdAt]
+    );
+    return { ...payload, id, createdAt } as RescheduleRequest;
+  },
+  async addChatMessage(payload: Omit<ChatMessage, "id" | "createdAt">) {
+    const id = uuid();
+    const createdAt = now();
+    await query(
+      `INSERT INTO chat_messages(id, from_user_id, to_user_id, body, appointment_id, created_at) VALUES($1,$2,$3,$4,$5,$6)`,
+      [id, payload.fromUserId, payload.toUserId, payload.body, payload.appointmentId || null, createdAt]
+    );
+    return { ...payload, id, createdAt } as ChatMessage;
+  },
+  async markChatDelivered(messageId: string) {
+    const deliveredAt = now();
+    const res = await query(`UPDATE chat_messages SET delivered_at=$1 WHERE id=$2 RETURNING *`, [deliveredAt, messageId]);
+    return res.rows[0];
+  },
+  async markChatRead(messageId: string, userId: string) {
+    const readAt = now();
+    const res = await query(`UPDATE chat_messages SET read_at=$1 WHERE id=$2 AND to_user_id=$3 RETURNING *`, [readAt, messageId, userId]);
+    return res.rows[0];
+  },
+  async listInbox(userId: string) {
+    const res = await query<ChatMessage>(`SELECT * FROM chat_messages WHERE to_user_id=$1 ORDER BY created_at DESC`, [userId]);
+    return res.rows;
+  },
+  async listUndeliveredMessages(userId: string) {
+    const res = await query<ChatMessage>(`SELECT * FROM chat_messages WHERE to_user_id=$1 AND delivered_at IS NULL`, [userId]);
+    return res.rows;
+  },
+  async listThread(userId: string, peerUserId: string) {
+    const res = await query<ChatMessage>(`SELECT * FROM chat_messages WHERE (from_user_id=$1 AND to_user_id=$2) OR (from_user_id=$2 AND to_user_id=$1) ORDER BY created_at ASC`, [userId, peerUserId]);
+    return res.rows;
+  },
+  async addAIOutput(entry: Database["aiOutputs"][number]) {
+    const id = uuid();
+    const createdAt = now();
+    await query(
+      `INSERT INTO ai_outputs(id, appointment_id, client_id, prompt, summary_text, readme_attachment_id, pdf_attachment_id, created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [id, entry.appointmentId, entry.clientId, entry.prompt, entry.summaryText, entry.readmeAttachmentId, entry.pdfAttachmentId, createdAt]
+    );
+    return { ...entry, id, createdAt };
+  },
+  async addEmailDispatch(payload: Omit<EmailDispatch, "id" | "createdAt" | "status">) {
+    const id = uuid();
+    const createdAt = now();
+    await query(`INSERT INTO email_dispatches(id, appointment_id, "to", subject, status, error_message, created_at) VALUES($1,$2,$3,$4,$5,$6,$7)`, [id, payload.appointmentId, payload.to, payload.subject, "PENDING", null, createdAt]);
+    return { ...payload, id, createdAt, status: "PENDING" } as EmailDispatch;
+  },
+  async updateEmailDispatch(id: string, update: Partial<EmailDispatch>) {
+    const fields: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+    if (update.status !== undefined) {
+      fields.push(`status=$${idx++}`);
+      values.push(update.status);
+    }
+    if ((update as any).errorMessage !== undefined) {
+      fields.push(`error_message=$${idx++}`);
+      values.push((update as any).errorMessage);
+    }
+    if ((update as any).sentAt !== undefined) {
+      fields.push(`sent_at=$${idx++}`);
+      values.push((update as any).sentAt);
+    }
+    if (fields.length === 0) return undefined;
+    values.push(id);
+    const res = await query(`UPDATE email_dispatches SET ${fields.join(", ")} WHERE id=$${idx} RETURNING *`, values);
+    return res.rows[0];
+  }
+};
+
+export async function initializeSeedData() {
+  const admin = await database.findFirstAdmin();
+  if (!admin) {
+    await database.createUser({
+      role: "admin",
+      username: config.ADMIN_USERNAME,
+      passwordHash: bcrypt.hashSync(config.ADMIN_PASSWORD, 10) as any,
+      fullName: "Primary Admin",
+      isActive: true
+    } as any);
+  }
+
+  const superusers = await database.findSuperusers();
+  if (!superusers || superusers.length === 0) {
+    await database.createUser({
+      role: "superuser",
+      email: "superuser@example.com",
+      passwordHash: bcrypt.hashSync("TempSuper123!", 10) as any,
+      fullName: "Senior Meeting Specialist",
+      rank: "Senior Consultant",
+      state: "Lagos",
+      specializations: ["AI Strategy", "Product Leadership"],
+      isActive: true
+    } as any);
+  }
+}
+
+export function attachmentsDir() {
+  return config.DATA_DIR_ABS + "/attachments";
+}

@@ -124,6 +124,7 @@ export default function App() {
         method: "POST",
         body: JSON.stringify(payload)
       });
+      setMe(null);
       setToken(out.token);
       const user = await fetchMe(out.token);
       setStatus(`Signed up as ${user.fullName || user.email}`);
@@ -138,6 +139,7 @@ export default function App() {
         method: "POST",
         body: JSON.stringify({ email, password })
       });
+      setMe(null);
       setToken(out.token);
       const user = await fetchMe(out.token);
       setStatus(`Client login successful (${user.email})`);
@@ -152,6 +154,7 @@ export default function App() {
         method: "POST",
         body: JSON.stringify({ username: adminUsername, password: adminPassword })
       });
+      setMe(null);
       setToken(out.token);
       const user = await fetchMe(out.token);
       setStatus(`Admin login successful (${user.username})`);
