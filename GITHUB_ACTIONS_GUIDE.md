@@ -25,11 +25,11 @@ The GitHub Actions workflow for Build-Empire has been updated with comprehensive
 2. ✅ Setup Docker Buildx
 3. ✅ Login to GitHub Container Registry (GHCR)
 4. ✅ Build and push API image:
-   - `ghcr.io/Givforks/build-empire-api:latest`
-   - `ghcr.io/Givforks/build-empire-api:<commit-sha>`
+   - `ghcr.io/givforks/build-empire-api:latest`
+   - `ghcr.io/givforks/build-empire-api:<commit-sha>`
 5. ✅ Build and push Web image:
-   - `ghcr.io/Givforks/build-empire-web:latest`
-   - `ghcr.io/Givforks/build-empire-web:<commit-sha>`
+   - `ghcr.io/givforks/build-empire-web:latest`
+   - `ghcr.io/givforks/build-empire-web:<commit-sha>`
 6. ✅ Display summary
 
 ### Job 3: deploy-notes (Main branch push only)
@@ -110,11 +110,11 @@ The GitHub Actions workflow for Build-Empire has been updated with comprehensive
 ✅ Setup Docker Buildx
 ✅ Login to GHCR
 ✅ Build and push API image
-   → ghcr.io/Givforks/build-empire-api:latest
-   → ghcr.io/Givforks/build-empire-api:<sha>
+   → ghcr.io/givforks/build-empire-api:latest
+   → ghcr.io/givforks/build-empire-api:<sha>
 ✅ Build and push Web image
-   → ghcr.io/Givforks/build-empire-web:latest
-   → ghcr.io/Givforks/build-empire-web:<sha>
+   → ghcr.io/givforks/build-empire-web:latest
+   → ghcr.io/givforks/build-empire-web:<sha>
 ```
 
 ### deploy-notes Job
@@ -213,14 +213,14 @@ If this passes locally but fails on GitHub, the issue is usually:
 Once the workflow succeeds, your images are available at:
 
 ```
-API:  ghcr.io/Givforks/build-empire-api:latest
-Web:  ghcr.io/Givforks/build-empire-web:latest
+API:  ghcr.io/givforks/build-empire-api:latest
+Web:  ghcr.io/givforks/build-empire-web:latest
 ```
 
 Use these for deployment:
 ```bash
-docker pull ghcr.io/Givforks/build-empire-api:latest
-docker pull ghcr.io/Givforks/build-empire-web:latest
+docker pull ghcr.io/givforks/build-empire-api:latest
+docker pull ghcr.io/givforks/build-empire-web:latest
 ```
 
 ---

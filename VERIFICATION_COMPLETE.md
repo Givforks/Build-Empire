@@ -102,8 +102,8 @@ The GitHub Actions workflow (`/.github/workflows/ci-cd.yml`) is configured to:
 ### Job 2: docker-publish (on main push)
 1. ✅ Setup Docker Buildx
 2. ✅ Login to GHCR
-3. ✅ Build & push API image to `ghcr.io/Givforks/build-empire-api:latest`
-4. ✅ Build & push Web image to `ghcr.io/Givforks/build-empire-web:latest`
+3. ✅ Build & push API image to `ghcr.io/givforks/build-empire-api:latest`
+4. ✅ Build & push Web image to `ghcr.io/givforks/build-empire-web:latest`
 
 ### Job 3: deploy-notes
 1. ✅ Outputs deployment instructions
