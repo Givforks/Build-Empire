@@ -68,6 +68,37 @@ npm run dev:web
 Web UI: `http://localhost:5173`
 API: `http://localhost:4000`
 
+## Postgres & Smoke Test
+
+For local end-to-end validation using PostgreSQL and the smoke test harness:
+
+- Ensure `DATABASE_URL` is set in your environment or in `apps/api/.env` (example):
+
+```bash
+export DATABASE_URL="postgres://build_empire:change-me@localhost:5432/build_empire"
+export AUTO_RUN_MIGRATIONS=true
+```
+
+- Start services (Compose brings up Postgres in `docker-compose.yml`):
+
+```bash
+npm run docker:up
+```
+
+- Clear previous smoke run state (avoids signup 409 conflicts):
+
+```bash
+rm -rf apps/api/data-smoke/* || true
+```
+
+- Run the smoke test (signup -> appointment -> AI flow):
+
+```bash
+bash scripts/smoke-test.sh
+```
+
+Smoke logs are written to `apps/api/data-smoke/smoke-api.log` and the script exits non-zero on failures.
+
 ## Docker Production Run
 
 ```bash
