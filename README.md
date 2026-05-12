@@ -84,50 +84,99 @@ cd /home/givenchi/Build-Empire
 npm run docker:down
 ```
 
-## Docker HTTPS + Secrets (Production Overlay)
+## 🚀 Quick Deploy (Production)
 
-Fast bootstrap:
+### Local Production Validation
 
 ```bash
 cd /home/givenchi/Build-Empire
+
+# Step 1: Bootstrap (generates secrets, certs, .env)
 npm run bootstrap:prod
-```
 
-This command creates:
-- `.env` from `.env.production.example` when missing
-- `secrets/jwt_secret.txt`
-- `secrets/admin_password.txt`
-- `secrets/smtp_password.txt`
-- self-signed TLS certs in `infra/certs/`
-
-Start hardened HTTPS stack:
-
-```bash
-cd /home/givenchi/Build-Empire
+# Step 2: Run local production stack with PostgreSQL
 npm run docker:up:prod
+
+# Step 3: Validate end-to-end flow
+npm run smoke
 ```
 
-Stop hardened stack:
+**What bootstrap:prod does:**
+- Creates `.env` from `.env.production.example`
+- Generates cryptographically random JWT_SECRET
+- Creates admin password file (`Givenchi1@@@@@`)
+- Generates self-signed HTTPS certificates
+- Sets secure file permissions (600)
 
+### Deploy to Cloud (Pick One)
+
+**Render.com** (Easiest, recommended for beginners)
 ```bash
-cd /home/givenchi/Build-Empire
-npm run docker:down:prod
+npm run deploy:render
+# Auto-deploys on git push via GitHub integration
 ```
 
-Local compose validation command:
-
+**Fly.io** (Global edge deployment)
 ```bash
-cd /home/givenchi/Build-Empire
-npm run docker:config
-docker compose -f docker-compose.yml -f docker-compose.prod.yml config
+npm run deploy:fly
+# Deploys to 6+ regions globally
 ```
+
+**DigitalOcean** (Simple, predictable $5-50/month pricing)
+```bash
+npm run deploy:digitalocean
+# YAML-based infrastructure
+```
+
+**AWS** (Maximum control, auto-scaling)
+```bash
+npm run deploy:aws
+# ECS + RDS + ALB + CloudFront
+```
+
+### Full Deployment Guide
+
+See [**DEPLOYMENT.md**](./DEPLOYMENT.md) for:
+- Step-by-step guides for each platform
+- Environment variable checklists
+- Post-deployment verification
+- Rollback procedures
+- Troubleshooting
+
+### Pre-Deployment Checklist
+
+See [**PRODUCTION_CHECKLIST.md**](./PRODUCTION_CHECKLIST.md) for:
+- Pre-deployment validation steps
+- Platform-specific setup
+- Post-deployment verification
+- Incident response procedures
+- Ongoing operations guidelines
 
 ## Default Admin Credentials
 
 - Username: `GivenchiCodes`
 - Password: `Givenchi1@@@@@`
 
-Override in production using compose/env vars.
+Override in production by setting `ADMIN_PASSWORD_FILE` or `ADMIN_PASSWORD` env var.
+
+## Docker Commands Reference
+
+```bash
+# Start production stack (with PostgreSQL + HTTPS)
+npm run docker:up:prod
+
+# Stop production stack
+npm run docker:down:prod
+
+# View logs
+npm run docker:logs
+
+# Validate compose config
+npm run docker:config
+
+# Clean up volumes
+docker compose down -v
+```
 
 ## API Surface (MVP)
 

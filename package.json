@@ -11,6 +11,10 @@
     "dev:web": "npm run dev -w @build-empire/web",
     "build": "npm run build -ws",
     "test": "npm run test -w @build-empire/api",
+    "start": "npm run start -ws",
+    "start:api": "npm run start -w @build-empire/api",
+    "start:web": "npm run start -w @build-empire/web",
+    "start:prod": "bash scripts/start-prod.sh",
     "docker:up": "docker compose up -d --build",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
@@ -18,6 +22,10 @@
     "docker:up:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build",
     "docker:down:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml down",
     "bootstrap:prod": "bash scripts/bootstrap-prod.sh",
-    "smoke": "bash scripts/smoke-test.sh"
+    "smoke": "bash scripts/smoke-test.sh",
+    "deploy:render": "bash scripts/deploy-render.sh",
+    "deploy:fly": "bash scripts/deploy-fly.sh",
+    "deploy:digitalocean": "bash scripts/deploy-digitalocean.sh",
+    "deploy:aws": "bash scripts/deploy-aws.sh"
   }
 }
