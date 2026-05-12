@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -21,19 +23,39 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Display system info
+        run: |
+          node --version
+          npm --version
+          docker --version
+          docker compose version
+
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --verbose
 
       - name: Run tests
-        run: npm run test
+        run: npm run test -- --reporter=verbose
 
       - name: Run build
         run: npm run build
 
       - name: Validate compose files
         run: |
+          echo "Validating docker-compose.yml..."
           docker compose config > /tmp/compose.out
+          echo "✓ docker-compose.yml is valid"
+          echo ""
+          echo "Validating docker-compose.prod.yml overlay..."
           docker compose -f docker-compose.yml -f docker-compose.prod.yml config > /tmp/compose.prod.out
+          echo "✓ docker-compose.prod.yml is valid"
+
+      - name: Check build artifacts
+        run: |
+          echo "API dist files:"
+          ls -lh apps/api/dist/ | head -10
+          echo ""
+          echo "Web dist files:"
+          ls -lh apps/web/dist/ | head -10
 
   docker-publish:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -62,7 +84,9 @@ jobs:
           context: .
           file: apps/api/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/build-empire-api:latest
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/build-empire-api:latest
+            ghcr.io/${{ github.repository_owner }}/build-empire-api:${{ github.sha }}
 
       - name: Build and push Web image
         uses: docker/build-push-action@v6
@@ -70,14 +94,45 @@ jobs:
           context: .
           file: apps/web/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/build-empire-web:latest
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/build-empire-web:latest
+            ghcr.io/${{ github.repository_owner }}/build-empire-web:${{ github.sha }}
+
+      - name: Image build summary
+        run: |
+          echo "✅ Docker images built and pushed successfully"
+          echo "API Image: ghcr.io/${{ github.repository_owner }}/build-empire-api:latest"
+          echo "Web Image: ghcr.io/${{ github.repository_owner }}/build-empire-web:latest"
 
   deploy-notes:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: docker-publish
     runs-on: ubuntu-latest
     steps:
-      - name: Deployment placeholder
+      - name: Deployment summary
         run: |
-          echo 'Images published to GHCR.'
-          echo 'Deploy using your target platform by pulling latest tags.'
+          echo "╔════════════════════════════════════════════════════════════════╗"
+          echo "║              ✅ BUILD-EMPIRE CI/CD COMPLETE                    ║"
+          echo "╚════════════════════════════════════════════════════════════════╝"
+          echo ""
+          echo "📊 Pipeline Summary:"
+          echo "✅ Tests: Passed"
+          echo "✅ Build: Successful"
+          echo "✅ Docker: Images built and pushed to GHCR"
+          echo ""
+          echo "🐳 Docker Images Published:"
+          echo "  API:  ghcr.io/${{ github.repository_owner }}/build-empire-api:latest"
+          echo "  Web:  ghcr.io/${{ github.repository_owner }}/build-empire-web:latest"
+          echo ""
+          echo "📚 Deployment Options:"
+          echo "  1. Render.com:     npm run deploy:render"
+          echo "  2. Fly.io:         npm run deploy:fly"
+          echo "  3. DigitalOcean:   npm run deploy:digitalocean"
+          echo "  4. AWS:            npm run deploy:aws"
+          echo ""
+          echo "📖 Documentation:"
+          echo "  - QUICK_START.md: Quick reference guide"
+          echo "  - DEPLOYMENT.md: Platform-specific deployment guides"
+          echo "  - PRODUCTION_CHECKLIST.md: Pre-launch validation"
+          echo ""
+          echo "✨ All systems ready to deploy! 🚀"
