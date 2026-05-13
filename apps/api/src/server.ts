@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import express from "express";
+import helmet from "helmet";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import bcrypt from "bcryptjs";
@@ -178,7 +179,27 @@ function sanitizeError(error: unknown) {
 
 export function createApp() {
   const app = express();
+  // Security headers
+  app.use(helmet());
 
+  // Simple access logging to file
+  function logRequest(method: string, path: string, status: number, duration: number) {
+    try {
+      const timestamp = new Date().toISOString();
+      const log = `${timestamp} ${method} ${path} ${status} ${duration}ms\n`;
+      fs.appendFileSync(path === "/health" ? "logs/health.log" : "logs/access.log", log);
+    } catch (e) {
+      // ignore logging errors
+    }
+  }
+
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on("finish", () => {
+      logRequest(req.method, req.path, res.statusCode, Date.now() - start);
+    });
+    next();
+  });
   app.use(cors({ origin: config.WEB_ORIGIN === "*" ? true : config.WEB_ORIGIN }));
   app.use(express.json({ limit: "1mb" }));
 
@@ -244,7 +265,16 @@ export function createApp() {
     return res.status(201).json({ token, userId: user.id, role: "client" });
   });
 
-  app.post("/api/auth/login", (req, res) => {
+  const bruteForceProtection = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 6,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: "Too many login attempts, try again later",
+    skipSuccessfulRequests: true
+  });
+
+  app.post("/api/auth/login", bruteForceProtection, (req, res) => {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten() });
@@ -259,7 +289,7 @@ export function createApp() {
     return res.json({ token, role: user.role, userId: user.id });
   });
 
-  app.post("/api/auth/admin-login", (req, res) => {
+  app.post("/api/auth/admin-login", bruteForceProtection, (req, res) => {
     const parsed = adminLoginSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten() });
@@ -274,7 +304,7 @@ export function createApp() {
     return res.json({ token, role: "admin", userId: admin.id });
   });
 
-  app.post("/api/auth/superuser-login", (req, res) => {
+  app.post("/api/auth/superuser-login", bruteForceProtection, (req, res) => {
     const parsed = superuserLoginSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten() });
@@ -752,6 +782,50 @@ export function createApp() {
       unregisterSocket(socket.id);
     });
   });
+
+  // Appointment reminders scheduler (runs hourly)
+  async function runAppointmentReminders() {
+    try {
+      const admin = await database.findFirstAdmin();
+      if (!admin) return;
+      const maybe = database.listAppointmentsForRole(admin.id, "admin");
+      const list = maybe instanceof Promise ? await maybe : maybe;
+      const nowTs = Date.now();
+      for (const apt of list) {
+        try {
+          const scheduled = apt.adminDecidedDateTime || (apt.preferredDates && apt.preferredDates[0] && apt.preferredDates[0].date);
+          if (!scheduled) continue;
+          const scheduledTs = Date.parse(scheduled);
+          if (Number.isNaN(scheduledTs)) continue;
+          const hoursUntil = (scheduledTs - nowTs) / (1000 * 60 * 60);
+          if (hoursUntil <= 24 && hoursUntil > 0 && apt.summaryEmailStatus !== "REMINDER_SENT") {
+            const client = await (database.findUserById ? database.findUserById(apt.clientId) : undefined);
+            const superuser = apt.superuserId ? await (database.findUserById ? database.findUserById(apt.superuserId) : undefined) : undefined;
+            if (client) {
+              try {
+                await sendAppointmentReminder(client, apt, superuser || { fullName: "Specialist" } as any);
+                // mark reminder sent
+                if (database.updateAppointment) {
+                  await database.updateAppointment(apt.id, { summaryEmailStatus: "REMINDER_SENT" });
+                }
+              } catch (err) {
+                console.error("Failed sending reminder for appointment", apt.id, err);
+              }
+            }
+          }
+        } catch (e) {
+          // per-appointment failure should not stop scheduler
+          console.error("Reminder check failed for appointment", apt && apt.id, e);
+        }
+      }
+    } catch (e) {
+      console.error("Appointment reminder scheduler error:", e);
+    }
+  }
+
+  // Run initially, then every hour
+  void runAppointmentReminders();
+  setInterval(() => void runAppointmentReminders(), 60 * 60 * 1000);
 
   return { app, httpServer };
 }
