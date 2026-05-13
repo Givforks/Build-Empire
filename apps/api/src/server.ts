@@ -13,7 +13,14 @@ import { config } from "./config.js";
 import { attachmentsDir, database, initializeSeedData } from "./db.js";
 import { buildMeetingSummary } from "./services/ai.js";
 import { createPdfFromText } from "./services/pdf.js";
-import { sendSummaryEmail } from "./services/email.js";
+import {
+  sendSummaryEmail,
+  sendAppointmentConfirmation,
+  sendAppointmentApproved,
+  sendAppointmentRejected,
+  sendAppointmentReminder,
+  sendMessageNotification
+} from "./services/email.js";
 import type { Attachment, ChatMessage, PreferredDate, Role } from "./types.js";
 
 const { compareSync, hashSync } = bcrypt;
@@ -383,7 +390,7 @@ export function createApp() {
     return res.status(201).json(publicUser(superuser));
   });
 
-  app.post("/api/appointments", requireAuth, requireRole("client"), (req, res) => {
+  app.post("/api/appointments", requireAuth, requireRole("client"), async (req, res) => {
     const parsed = appointmentSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten() });
@@ -409,6 +416,16 @@ export function createApp() {
       attachments: [],
       summaryEmailStatus: "PENDING"
     });
+
+    // Send confirmation email to client
+    const client = database.findUserById(auth.userId);
+    if (client) {
+      try {
+        await sendAppointmentConfirmation(client, appointment);
+      } catch (error) {
+        console.error("Failed to send confirmation email:", error);
+      }
+    }
 
     return res.status(201).json({ id: appointment.id });
   });
@@ -489,7 +506,7 @@ export function createApp() {
     return res.json({ ok: true, appointment: updated });
   });
 
-  app.post("/api/admin/appointments/:id/decision", requireAuth, requireRole("admin"), (req, res) => {
+  app.post("/api/admin/appointments/:id/decision", requireAuth, requireRole("admin"), async (req, res) => {
     const parsed = decisionSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten() });
@@ -506,6 +523,25 @@ export function createApp() {
       status: parsed.data.decision,
       adminDecidedDateTime: parsed.data.adminDecidedDateTime
     });
+
+    // Send decision email to client
+    const client = database.findUserById(appointment.clientId);
+    if (client) {
+      try {
+        if (parsed.data.decision === "APPROVED") {
+          const superuser = appointment.superuserId 
+            ? database.findUserById(appointment.superuserId)
+            : undefined;
+          if (superuser) {
+            await sendAppointmentApproved(client, updated, superuser);
+          }
+        } else if (parsed.data.decision === "REJECTED") {
+          await sendAppointmentRejected(client, updated);
+        }
+      } catch (error) {
+        console.error("Failed to send decision email:", error);
+      }
+    }
 
     return res.json({ ok: true, appointment: updated });
   });
