@@ -27,6 +27,8 @@ const schema = z.object({
   SMTP_PASS: z.string().optional(),
   SMTP_PASS_FILE: z.string().optional(),
   SMTP_FROM: z.string().default("no-reply@build-empire.local")
+  ,
+  SENTRY_DSN: z.string().optional()
 });
 
 const parsed = schema.safeParse(process.env);

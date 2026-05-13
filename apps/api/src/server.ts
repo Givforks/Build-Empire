@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
 import { v4 as uuid } from "uuid";
 import { z } from "zod";
 import { createServer } from "node:http";
+import * as Sentry from "@sentry/node";
 import { Server as SocketIOServer } from "socket.io";
 import { requireAuth, requireRole, signToken } from "./auth.js";
 import { config } from "./config.js";
@@ -179,6 +180,19 @@ function sanitizeError(error: unknown) {
 
 export function createApp() {
   const app = express();
+  // Initialize Sentry if DSN present
+  if (config.SENTRY_DSN) {
+    try {
+      Sentry.init({ dsn: config.SENTRY_DSN, environment: config.NODE_ENV });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const handlers: any = (Sentry as any).Handlers || (Sentry as any).handler || null;
+      if (handlers && handlers.requestHandler) {
+        app.use(handlers.requestHandler());
+      }
+    } catch (e) {
+      console.error("Failed to initialize Sentry:", e);
+    }
+  }
   // Security headers
   app.use(helmet());
 
@@ -225,6 +239,43 @@ export function createApp() {
 
   app.get("/health", (_req, res) => {
     res.json({ ok: true, env: config.NODE_ENV, time: now() });
+  });
+
+  // Admin analytics endpoint
+  app.get("/api/admin/analytics", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const users = await database.listUsers();
+      const appointments = await database.listAppointmentsForRole((req as any).auth.userId, "admin");
+      const totalUsers = Array.isArray(users) ? users.length : (await users).length;
+      const clientCount = Array.isArray(users) ? users.filter((u: any) => u.role === "client").length : (await users).filter((u: any) => u.role === "client").length;
+      const superuserCount = Array.isArray(users) ? users.filter((u: any) => u.role === "superuser").length : (await users).filter((u: any) => u.role === "superuser").length;
+      const totalAppointments = Array.isArray(appointments) ? appointments.length : (await appointments).length;
+      const statusCounts: Record<string, number> = {};
+      const appts = Array.isArray(appointments) ? appointments : await appointments;
+      for (const a of appts) {
+        statusCounts[a.status] = (statusCounts[a.status] || 0) + 1;
+      }
+
+      // average decision time for approved appointments
+      const approved = appts.filter((a: any) => a.status === "APPROVED" && a.adminDecidedDateTime && a.createdAt);
+      let avgDecisionHours = 0;
+      if (approved.length) {
+        const totalMs = approved.reduce((sum: number, a: any) => sum + (Date.parse(a.adminDecidedDateTime) - Date.parse(a.createdAt)), 0);
+        avgDecisionHours = totalMs / approved.length / (1000 * 60 * 60);
+      }
+
+      return res.json({
+        totalUsers,
+        clientCount,
+        superuserCount,
+        totalAppointments,
+        statusCounts,
+        avgDecisionHours: Math.round(avgDecisionHours * 100) / 100
+      });
+    } catch (err) {
+      console.error("Analytics error:", err);
+      return res.status(500).json({ error: "Failed to compute analytics" });
+    }
   });
 
   app.get("/api/me", requireAuth, (req, res) => {
