@@ -43,6 +43,34 @@ const adminLoginSchema = z.object({
   password: z.string().min(1)
 });
 
+const superuserLoginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1)
+});
+
+const adminUserSchema = z.object({
+  role: z.enum(["client", "superuser"]),
+  email: z.string().email(),
+  password: z.string().min(10),
+  fullName: z.string().min(2),
+  state: z.string().optional(),
+  username: z.string().optional(),
+  rank: z.string().optional(),
+  specializations: z.array(z.string().min(2)).optional(),
+  isActive: z.boolean().optional()
+});
+
+const adminUserUpdateSchema = z.object({
+  email: z.string().email().optional(),
+  password: z.string().min(10).optional(),
+  fullName: z.string().min(2).optional(),
+  state: z.string().optional(),
+  username: z.string().optional(),
+  rank: z.string().optional(),
+  specializations: z.array(z.string().min(2)).optional(),
+  isActive: z.boolean().optional()
+});
+
 const createSuperuserSchema = z.object({
   fullName: z.string().min(2),
   email: z.string().email(),
@@ -102,6 +130,22 @@ function maskSuperuser(superuser?: { rank?: string; specializations?: string[] }
   return {
     rank: superuser.rank,
     specializations: superuser.specializations || []
+  };
+}
+
+function publicUser(user: any) {
+  if (!user) return null;
+  return {
+    id: user.id,
+    role: user.role,
+    email: user.email,
+    username: user.username,
+    fullName: user.fullName,
+    rank: user.rank,
+    specializations: user.specializations || [],
+    state: user.state,
+    isActive: user.isActive,
+    createdAt: user.createdAt
   };
 }
 
@@ -223,9 +267,96 @@ export function createApp() {
     return res.json({ token, role: "admin", userId: admin.id });
   });
 
+  app.post("/api/auth/superuser-login", (req, res) => {
+    const parsed = superuserLoginSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten() });
+    }
+
+    const user = database.findUserByEmail(parsed.data.email);
+    if (!user || user.role !== "superuser" || !compareSync(parsed.data.password, user.passwordHash)) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    const token = signToken({ userId: user.id, role: "superuser" });
+    return res.json({ token, role: "superuser", userId: user.id });
+  });
+
+  app.get("/api/admin/users", requireAuth, requireRole("admin"), (req, res) => {
+    const role = typeof req.query.role === "string" ? req.query.role : undefined;
+    const list = role === "client" || role === "superuser" ? database.listUsers(role) : database.listUsers();
+    return res.json(list.map((user: any) => publicUser(user)));
+  });
+
+  app.post("/api/admin/users", requireAuth, requireRole("admin"), (req, res) => {
+    const parsed = adminUserSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten() });
+    }
+
+    if (database.findUserByEmail(parsed.data.email)) {
+      return res.status(409).json({ error: "Email already exists" });
+    }
+
+    if (parsed.data.role === "superuser" && (!parsed.data.rank || !parsed.data.specializations?.length)) {
+      return res.status(400).json({ error: "rank and specializations are required for superusers" });
+    }
+
+    const created = database.createUser({
+      role: parsed.data.role,
+      email: parsed.data.email,
+      username: parsed.data.role === "superuser" ? undefined : parsed.data.username,
+      fullName: parsed.data.fullName,
+      state: parsed.data.state,
+      rank: parsed.data.role === "superuser" ? parsed.data.rank : undefined,
+      specializations: parsed.data.role === "superuser" ? parsed.data.specializations : undefined,
+      passwordHash: hashSync(parsed.data.password, 10),
+      isActive: parsed.data.isActive ?? true
+    });
+
+    return res.status(201).json(publicUser(created));
+  });
+
+  app.patch("/api/admin/users/:id", requireAuth, requireRole("admin"), (req, res) => {
+    const parsed = adminUserUpdateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten() });
+    }
+
+    const existing = database.findUserById(req.params.id);
+    if (!existing) return res.status(404).json({ error: "User not found" });
+    if (existing.role === "admin") {
+      return res.status(403).json({ error: "Admin accounts cannot be modified here" });
+    }
+
+    const updated = database.updateUser(existing.id, {
+      email: parsed.data.email ?? existing.email,
+      username: parsed.data.username ?? existing.username,
+      fullName: parsed.data.fullName ?? existing.fullName,
+      state: parsed.data.state ?? existing.state,
+      rank: parsed.data.rank ?? existing.rank,
+      specializations: parsed.data.specializations ?? existing.specializations,
+      isActive: parsed.data.isActive ?? existing.isActive,
+      passwordHash: parsed.data.password ? hashSync(parsed.data.password, 10) : existing.passwordHash
+    } as any);
+
+    return res.json(publicUser(updated));
+  });
+
+  app.delete("/api/admin/users/:id", requireAuth, requireRole("admin"), (req, res) => {
+    const existing = database.findUserById(req.params.id);
+    if (!existing) return res.status(404).json({ error: "User not found" });
+    if (existing.role === "admin") {
+      return res.status(403).json({ error: "Admin accounts cannot be deleted here" });
+    }
+
+    const removed = database.deleteUser(existing.id);
+    return res.json(publicUser(removed));
+  });
+
   app.get("/api/admin/superusers", requireAuth, requireRole("admin"), (_req, res) => {
     const superusers = database.findSuperusers();
-    return res.json(superusers);
+    return res.json(superusers.map((user: any) => publicUser(user)));
   });
 
   app.post("/api/admin/superusers", requireAuth, requireRole("admin"), (req, res) => {
@@ -249,13 +380,7 @@ export function createApp() {
       isActive: true
     });
 
-    return res.status(201).json({
-      id: superuser.id,
-      fullName: superuser.fullName,
-      rank: superuser.rank,
-      specializations: superuser.specializations,
-      email: superuser.email
-    });
+    return res.status(201).json(publicUser(superuser));
   });
 
   app.post("/api/appointments", requireAuth, requireRole("client"), (req, res) => {

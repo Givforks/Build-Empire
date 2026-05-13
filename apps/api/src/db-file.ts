@@ -73,6 +73,9 @@ export const database = {
   findSuperusers() {
     return db.users.filter((u) => u.role === "superuser");
   },
+  listUsers(role?: User["role"]) {
+    return role ? db.users.filter((u) => u.role === role) : db.users;
+  },
   findUserById(id: string) {
     return db.users.find((u) => u.id === id);
   },
@@ -85,6 +88,23 @@ export const database = {
     db.users.push(user);
     writeDbFile(db);
     return user;
+  },
+  updateUser(id: string, update: Partial<User>) {
+    const idx = db.users.findIndex((u) => u.id === id);
+    if (idx < 0) return undefined;
+    db.users[idx] = {
+      ...db.users[idx],
+      ...update
+    };
+    writeDbFile(db);
+    return db.users[idx];
+  },
+  deleteUser(id: string) {
+    const idx = db.users.findIndex((u) => u.id === id);
+    if (idx < 0) return undefined;
+    const [removed] = db.users.splice(idx, 1);
+    writeDbFile(db);
+    return removed;
   },
   createAppointment(payload: Omit<Appointment, "id" | "createdAt" | "updatedAt">) {
     const appointment: Appointment = {

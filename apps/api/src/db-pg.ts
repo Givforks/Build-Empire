@@ -8,6 +8,34 @@ const pool = new Pool({ connectionString: config.DATABASE_URL });
 
 const now = () => new Date().toISOString();
 
+function parseJsonValue<T>(value: unknown, fallback: T): T {
+  if (value == null) return fallback;
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return fallback;
+    }
+  }
+  return value as T;
+}
+
+function rowToUser(row: any): User {
+  return {
+    id: row.id,
+    role: row.role,
+    email: row.email || undefined,
+    username: row.username || undefined,
+    passwordHash: row.password_hash,
+    fullName: row.full_name || undefined,
+    rank: row.rank || undefined,
+    specializations: parseJsonValue<string[]>(row.specializations, []),
+    state: row.state || undefined,
+    isActive: row.is_active,
+    createdAt: row.created_at
+  };
+}
+
 async function query<T extends QueryResultRow = QueryResultRow>(text: string, params?: any[]) {
   const client = await pool.connect();
   try {
@@ -45,11 +73,17 @@ export const database: any = {
   },
   async findSuperusers() {
     const res = await query<User>(`SELECT * FROM users WHERE role='superuser'`);
-    return res.rows;
+    return res.rows.map((row: any) => rowToUser(row));
+  },
+  async listUsers(role?: User["role"]) {
+    const res = role
+      ? await query<any>(`SELECT * FROM users WHERE role=$1 ORDER BY created_at DESC`, [role])
+      : await query<any>(`SELECT * FROM users ORDER BY created_at DESC`);
+    return res.rows.map((row: any) => rowToUser(row));
   },
   async findUserById(id: string) {
     const res = await query<User>(`SELECT * FROM users WHERE id=$1 LIMIT 1`, [id]);
-    return res.rows[0];
+    return res.rows[0] ? rowToUser(res.rows[0]) : undefined;
   },
   async createUser(payload: Omit<User, "id" | "createdAt">) {
     const id = uuid();
@@ -78,7 +112,36 @@ export const database: any = {
         createdAt
       ]
     );
-    return { ...payload, id, createdAt, passwordHash: password_hash } as User;
+    const created = await this.findUserById(id);
+    return created || ({ ...payload, id, createdAt, passwordHash: password_hash } as User);
+  },
+  async updateUser(id: string, update: Partial<User>) {
+    const existing = await this.findUserById(id);
+    if (!existing) return undefined;
+    const merged = { ...existing, ...update } as User;
+    const specializations = merged.specializations ? JSON.stringify(merged.specializations) : null;
+    await query(
+      `UPDATE users SET role=$1, email=$2, username=$3, password_hash=$4, full_name=$5, rank=$6, specializations=$7, state=$8, is_active=$9 WHERE id=$10`,
+      [
+        merged.role,
+        merged.email || null,
+        merged.username || null,
+        merged.passwordHash,
+        merged.fullName || null,
+        merged.rank || null,
+        specializations,
+        merged.state || null,
+        merged.isActive ?? true,
+        id
+      ]
+    );
+    return merged;
+  },
+  async deleteUser(id: string) {
+    const existing = await this.findUserById(id);
+    if (!existing) return undefined;
+    await query(`DELETE FROM users WHERE id=$1`, [id]);
+    return existing;
   },
   async createAppointment(payload: Omit<Appointment, "id" | "createdAt" | "updatedAt">) {
     const id = uuid();
