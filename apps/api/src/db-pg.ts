@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { Pool } from "pg";
+import { Pool, type QueryResultRow } from "pg";
 import { v4 as uuid } from "uuid";
 import bcrypt from "bcryptjs";
 import { config } from "./config.js";
@@ -9,7 +8,7 @@ const pool = new Pool({ connectionString: config.DATABASE_URL });
 
 const now = () => new Date().toISOString();
 
-async function query<T = any>(text: string, params?: any[]) {
+async function query<T extends QueryResultRow = QueryResultRow>(text: string, params?: any[]) {
   const client = await pool.connect();
   try {
     const res = await client.query<T>(text, params);
@@ -19,7 +18,7 @@ async function query<T = any>(text: string, params?: any[]) {
   }
 }
 
-export const database = {
+export const database: any = {
   get snapshot() {
     return undefined as unknown as Database;
   },
@@ -55,11 +54,11 @@ export const database = {
   async createUser(payload: Omit<User, "id" | "createdAt">) {
     const id = uuid();
     const createdAt = now();
-    let password_hash = null;
+    let password_hash: string = "";
     if ((payload as any).passwordHash) {
-      password_hash = (payload as any).passwordHash;
+      password_hash = (payload as any).passwordHash as string;
     } else if ((payload as any).password) {
-      password_hash = bcrypt.hashSync((payload as any).password, 10);
+      password_hash = bcrypt.hashSync((payload as any).password as string, 10);
     }
     const specializations = (payload as any).specializations ? JSON.stringify((payload as any).specializations) : null;
     await query(
@@ -86,7 +85,7 @@ export const database = {
     const createdAt = now();
     const updatedAt = createdAt;
     const preferred_dates = JSON.stringify(payload.preferredDates || []);
-    const attachments = JSON.stringify(payload.attachments || []);
+    const attachments = JSON.stringify((payload.attachments as any[]) || []);
     await query(
       `INSERT INTO appointments(id, client_id, admin_id, status, topic, preferred_dates, admin_decided_datetime, superuser_id, attachments, summary_email_status, created_at, updated_at)
        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
@@ -121,7 +120,7 @@ export const database = {
         JSON.stringify(merged.preferredDates || []),
         merged.adminDecidedDateTime || null,
         merged.superuserId || null,
-        JSON.stringify(merged.attachments || []),
+        JSON.stringify((merged.attachments as any[]) || []),
         (merged as any).summaryEmailStatus || null,
         merged.updatedAt,
         id
@@ -130,26 +129,74 @@ export const database = {
     return merged;
   },
   async findAppointmentById(id: string) {
-    const res = await query<Appointment>(`SELECT * FROM appointments WHERE id=$1 LIMIT 1`, [id]);
+    const res = await query<any>(`SELECT * FROM appointments WHERE id=$1 LIMIT 1`, [id]);
     const row = res.rows[0];
     if (!row) return undefined;
     return {
       ...row,
+      clientId: row.client_id,
+      adminId: row.admin_id,
+      status: row.status,
+      topic: row.topic,
       preferredDates: row.preferred_dates ? JSON.parse(row.preferred_dates) : [],
-      attachments: row.attachments ? JSON.parse(row.attachments) : []
+      adminDecidedDateTime: row.admin_decided_datetime,
+      superuserId: row.superuser_id,
+      attachments: row.attachments ? JSON.parse(row.attachments) : [],
+      summaryEmailStatus: row.summary_email_status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
     } as Appointment;
   },
   async listAppointmentsForRole(userId: string, role: User["role"]) {
     if (role === "admin") {
-      const res = await query<Appointment>(`SELECT * FROM appointments ORDER BY created_at DESC`);
-      return res.rows.map((r) => ({ ...r, preferredDates: r.preferred_dates ? JSON.parse(r.preferred_dates) : [], attachments: r.attachments ? JSON.parse(r.attachments) : [] }));
+      const res = await query<any>(`SELECT * FROM appointments ORDER BY created_at DESC`);
+      return res.rows.map((r: any) => ({ 
+        id: r.id,
+        clientId: r.client_id,
+        adminId: r.admin_id,
+        status: r.status,
+        topic: r.topic,
+        preferredDates: r.preferred_dates ? JSON.parse(r.preferred_dates) : [],
+        adminDecidedDateTime: r.admin_decided_datetime,
+        superuserId: r.superuser_id,
+        attachments: r.attachments ? JSON.parse(r.attachments) : [],
+        summaryEmailStatus: r.summary_email_status,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at
+      } as Appointment));
     }
     if (role === "superuser") {
-      const res = await query<Appointment>(`SELECT * FROM appointments WHERE superuser_id=$1 ORDER BY created_at DESC`, [userId]);
-      return res.rows.map((r) => ({ ...r, preferredDates: r.preferred_dates ? JSON.parse(r.preferred_dates) : [], attachments: r.attachments ? JSON.parse(r.attachments) : [] }));
+      const res = await query<any>(`SELECT * FROM appointments WHERE superuser_id=$1 ORDER BY created_at DESC`, [userId]);
+      return res.rows.map((r: any) => ({ 
+        id: r.id,
+        clientId: r.client_id,
+        adminId: r.admin_id,
+        status: r.status,
+        topic: r.topic,
+        preferredDates: r.preferred_dates ? JSON.parse(r.preferred_dates) : [],
+        adminDecidedDateTime: r.admin_decided_datetime,
+        superuserId: r.superuser_id,
+        attachments: r.attachments ? JSON.parse(r.attachments) : [],
+        summaryEmailStatus: r.summary_email_status,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at
+      } as Appointment));
     }
-    const res = await query<Appointment>(`SELECT * FROM appointments WHERE client_id=$1 ORDER BY created_at DESC`, [userId]);
-    return res.rows.map((r) => ({ ...r, preferredDates: r.preferred_dates ? JSON.parse(r.preferred_dates) : [], attachments: r.attachments ? JSON.parse(r.attachments) : [] }));
+    const res = await query<any>(`SELECT * FROM appointments WHERE client_id=$1 ORDER BY created_at DESC`, [userId]);
+    return res.rows.map((r: any) => ({ 
+      id: r.id,
+      clientId: r.client_id,
+      adminId: r.admin_id,
+      status: r.status,
+      topic: r.topic,
+      preferredDates: r.preferred_dates ? JSON.parse(r.preferred_dates) : [],
+      adminDecidedDateTime: r.admin_decided_datetime,
+      superuserId: r.superuser_id,
+      attachments: r.attachments ? JSON.parse(r.attachments) : [],
+      summaryEmailStatus: r.summary_email_status,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at
+    } as Appointment));
   },
   async createReschedule(payload: Omit<RescheduleRequest, "id" | "createdAt">) {
     const id = uuid();
