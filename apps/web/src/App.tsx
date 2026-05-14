@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { io, Socket } from "socket.io-client";
+import BuildEmpireSection from "./BuildEmpireSection";
 
 type PreferredDate = { date: string; timeSlots: string[] };
 
@@ -78,6 +79,7 @@ async function api<T>(path: string, token?: string, init?: RequestInit): Promise
 }
 
 export default function App() {
+  const showEmpireSection = import.meta.env.VITE_SHOW_EMPIRE_SECTION !== "false";
   const [mode, setMode] = useState<"client" | "admin" | "superuser">("client");
   const [token, setToken] = useState("");
   const [me, setMe] = useState<Me | null>(null);
@@ -100,7 +102,8 @@ export default function App() {
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([]);
-  const [adminPanel, setAdminPanel] = useState<"overview" | "clients" | "superusers" | "appointments" | "messages">("overview");
+  const [adminPanel, setAdminPanel] = useState<"overview" | "clients" | "superusers" | "appointments" | "messages" | "analytics">("overview");
+  const [analytics, setAnalytics] = useState<{ totalUsers?: number; totalAppointments?: number; statusCounts?: Record<string, number>; avgDecisionHours?: number } | null>(null);
   const [clientDraftId, setClientDraftId] = useState("");
   const [clientDraftName, setClientDraftName] = useState("");
   const [clientDraftEmail, setClientDraftEmail] = useState("");
@@ -298,6 +301,21 @@ export default function App() {
         api<ManagedUser[]>("/api/admin/users?role=superuser", token)
       ]);
       setManagedUsers([...clients, ...superusers]);
+    } catch (error) {
+      setStatus((error as Error).message);
+    }
+  }
+
+  async function loadAdminAnalytics() {
+    if (!token || me?.role !== "admin") return;
+    try {
+      const out = await api<{
+        totalUsers: number;
+        totalAppointments: number;
+        statusCounts: Record<string, number>;
+        avgDecisionHours: number;
+      }>("/api/admin/analytics", token);
+      setAnalytics(out);
     } catch (error) {
       setStatus((error as Error).message);
     }
@@ -672,6 +690,8 @@ export default function App() {
         </section>
       )}
 
+      {showEmpireSection && <BuildEmpireSection />}
+
       {isAuthenticated && (
         <>
           <section className="card hero-summary" id="dashboard">
@@ -700,7 +720,7 @@ export default function App() {
           {me?.role === "admin" && (
             <section className="card tabbed-shell">
               <div className="panel-tabs">
-                {(["overview", "clients", "superusers", "appointments", "messages"] as const).map((tab) => (
+                {(["overview", "clients", "superusers", "appointments", "messages", "analytics"] as const).map((tab) => (
                   <button key={tab} className={adminPanel === tab ? "active" : ""} onClick={() => setAdminPanel(tab)}>
                     {tab}
                   </button>
@@ -719,6 +739,10 @@ export default function App() {
                       <strong>{managedUsers.filter((item) => item.role === "superuser").length}</strong>
                     </article>
                     <article className="glass-tile">
+                      <span>Total users</span>
+                      <strong>{analytics?.totalUsers ?? managedUsers.length}</strong>
+                    </article>
+                    <article className="glass-tile">
                       <span>Selected</span>
                       <strong>{selectedAppointment?.topic || "None"}</strong>
                     </article>
@@ -727,6 +751,36 @@ export default function App() {
                     <button onClick={() => setAdminPanel("clients")}>Manage clients</button>
                     <button className="ghost" onClick={() => setAdminPanel("superusers")}>Manage superusers</button>
                     <button className="ghost" onClick={loadAdminUsers}>Refresh users</button>
+                    <button className="ghost" onClick={loadAdminAnalytics}>Load analytics</button>
+                  </div>
+                </div>
+              )}
+
+              {adminPanel === "analytics" && (
+                <div className="stack">
+                  <h2>Analytics</h2>
+                  <div className="grid">
+                    <div className="metric">
+                      <span>Total appointments</span>
+                      <strong>{analytics?.totalAppointments ?? appointments.length}</strong>
+                    </div>
+                    <div className="metric">
+                      <span>Avg decision time (hrs)</span>
+                      <strong>{analytics?.avgDecisionHours ? analytics.avgDecisionHours.toFixed(1) : "N/A"}</strong>
+                    </div>
+                    <div className="metric">
+                      <span>Statuses</span>
+                      <div>
+                        {analytics?.statusCounts
+                          ? Object.entries(analytics.statusCounts).map(([k, v]) => (
+                              <div key={k}>{k}: {v}</div>
+                            ))
+                          : <div>No status data</div>}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="row">
+                    <button onClick={loadAdminAnalytics}>Refresh analytics</button>
                   </div>
                 </div>
               )}
