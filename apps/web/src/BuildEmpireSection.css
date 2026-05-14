@@ -1,0 +1,99 @@
+/* BuildEmpireSection.css */
+.empire-section {
+  margin: 2rem auto;
+  max-width: 900px;
+  text-align: center;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.empire-toggle {
+  background: #1b263b;
+  color: #f1faee;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.empire-toggle:hover {
+  background: #457b9d;
+}
+
+.empire-content {
+  margin-top: 2rem;
+  background: linear-gradient(135deg, #0d1b2a, #1b263b);
+  color: #e0e1dd;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+}
+
+.empire-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #e63946;
+  margin-bottom: 0.5rem;
+}
+
+.empire-tagline {
+  font-size: 1.3rem;
+  color: #a8dadc;
+  margin-bottom: 2rem;
+  letter-spacing: 2px;
+}
+
+.empire-vision-mission {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.empire-card {
+  background: #1b263b;
+  border: 2px solid #457b9d;
+  border-radius: 10px;
+  padding: 1.5rem;
+  flex: 1 1 300px;
+  color: #f1faee;
+}
+
+.empire-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
+.value-card {
+  background: #1b263b;
+  border: 2px solid #a8dadc;
+  border-radius: 10px;
+  padding: 1.2rem;
+  flex: 1 1 250px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.value-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+}
+
+.value-card h3 {
+  margin-bottom: 0.6rem;
+  color: #f1faee;
+}
+
+.value-card p {
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.empire-footer {
+  margin-top: 2rem;
+  font-style: italic;
+  color: #f1faee;
+}
