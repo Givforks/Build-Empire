@@ -27,5 +27,14 @@
     "deploy:fly": "bash scripts/deploy-fly.sh",
     "deploy:digitalocean": "bash scripts/deploy-digitalocean.sh",
     "deploy:aws": "bash scripts/deploy-aws.sh"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.8.0",
+    "@typescript-eslint/parser": "^6.8.0",
+    "eslint": "^8.50.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "prettier": "^3.6.0"
   }
 }

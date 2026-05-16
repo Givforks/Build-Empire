@@ -19,8 +19,11 @@ if [ -n "$ADMIN_PASSWORD_FILE" ] && [ -f "$ADMIN_PASSWORD_FILE" ]; then
     export ADMIN_PASSWORD=$(cat "$ADMIN_PASSWORD_FILE")
 fi
 
-if [ -n "$SMTP_PASSWORD_FILE" ] && [ -f "$SMTP_PASSWORD_FILE" ]; then
-    export SMTP_PASSWORD=$(cat "$SMTP_PASSWORD_FILE")
+SMTP_SECRET_FILE="${SMTP_PASS_FILE:-${SMTP_PASSWORD_FILE:-}}"
+if [ -n "$SMTP_SECRET_FILE" ] && [ -f "$SMTP_SECRET_FILE" ]; then
+    export SMTP_PASS=$(cat "$SMTP_SECRET_FILE")
+elif [ -n "$SMTP_PASSWORD" ] && [ -z "$SMTP_PASS" ]; then
+    export SMTP_PASS="$SMTP_PASSWORD"
 fi
 
 # Run migrations if AUTO_RUN_MIGRATIONS is true

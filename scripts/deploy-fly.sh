@@ -147,8 +147,8 @@ if [ -f "secrets/admin_password.txt" ]; then
 fi
 
 if [ -f "secrets/smtp_password.txt" ]; then
-    SMTP_PASSWORD=$(cat secrets/smtp_password.txt)
-    flyctl secrets set SMTP_PASSWORD="$SMTP_PASSWORD" || echo "⚠️  Could not set SMTP_PASSWORD"
+  SMTP_PASS=$(cat secrets/smtp_password.txt)
+  flyctl secrets set SMTP_PASS="$SMTP_PASS" || echo "⚠️  Could not set SMTP_PASS"
 fi
 
 echo ""

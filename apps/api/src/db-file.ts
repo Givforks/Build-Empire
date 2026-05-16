@@ -149,6 +149,7 @@ export const database = {
   addChatMessage(payload: Omit<ChatMessage, "id" | "createdAt">) {
     const message: ChatMessage = {
       ...payload,
+      attachments: payload.attachments || [],
       id: uuid(),
       createdAt: now()
     };

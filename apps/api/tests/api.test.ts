@@ -107,4 +107,72 @@ describe("Build-Empire API", () => {
       .send({ proposedDates: [{ date: "2026-07-04", timeSlots: ["14:00"] }] });
     expect(reschedule.status).toBe(409);
   });
+
+  it("shares approved deepseek briefs with client and superuser inboxes", async () => {
+    const { app } = createApp();
+
+    const clientSignup = await request(app).post("/api/auth/signup").send({
+      email: "client3@example.com",
+      password: "ClientPass123!",
+      fullName: "Client Three",
+      preferredDates: [{ date: "2026-08-01", timeSlots: ["09:30"] }]
+    });
+
+    const clientToken = clientSignup.body.token;
+    const createAppointment = await request(app)
+      .post("/api/appointments")
+      .set("Authorization", `Bearer ${clientToken}`)
+      .send({
+        topic: "Need an approved strategy session for product launch execution.",
+        preferredDates: [{ date: "2026-08-03", timeSlots: ["13:00"] }]
+      });
+
+    const appointmentId = createAppointment.body.id;
+
+    const adminLogin = await request(app).post("/api/auth/admin-login").send({
+      username: "GivenchiCodes",
+      password: "Givenchi1@@@@@"
+    });
+    const adminToken = adminLogin.body.token;
+
+    const decision = await request(app)
+      .post(`/api/admin/appointments/${appointmentId}/decision`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ decision: "APPROVED", adminDecidedDateTime: "2026-08-03T13:00:00Z" });
+
+    expect(decision.status).toBe(200);
+    expect(decision.body.appointment.status).toBe("APPROVED");
+
+    const clientInbox = await request(app)
+      .get("/api/inbox")
+      .set("Authorization", `Bearer ${clientToken}`);
+
+    expect(clientInbox.status).toBe(200);
+    expect(clientInbox.body.messages.length).toBeGreaterThan(0);
+    expect(clientInbox.body.messages[0].attachments).toHaveLength(2);
+    expect(clientInbox.body.messages[0].body).toContain("Meeting Brief");
+
+    const superuserLogin = await request(app).post("/api/auth/superuser-login").send({
+      email: "superuser@example.com",
+      password: "TempSuper123!"
+    });
+    const superuserToken = superuserLogin.body.token;
+
+    const superuserInbox = await request(app)
+      .get("/api/inbox")
+      .set("Authorization", `Bearer ${superuserToken}`);
+
+    expect(superuserInbox.status).toBe(200);
+    expect(superuserInbox.body.messages.length).toBeGreaterThan(0);
+    expect(superuserInbox.body.messages[0].attachments).toHaveLength(2);
+    expect(superuserInbox.body.messages[0].body).toContain("Recommended Answers");
+
+    const attachment = clientInbox.body.messages[0].attachments[0];
+    const download = await request(app)
+      .get(`/api/attachments/${appointmentId}/${attachment.id}`)
+      .set("Authorization", `Bearer ${clientToken}`);
+
+    expect(download.status).toBe(200);
+    expect(download.headers["content-disposition"]).toContain(attachment.fileName);
+  });
 });

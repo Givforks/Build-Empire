@@ -34,10 +34,20 @@ type InboxMessage = {
   toUserId: string;
   body: string;
   appointmentId?: string;
+  attachments?: Array<{ id: string; type: string; fileName: string; filePath: string }>;
   deliveredAt?: string;
   readAt?: string;
   createdAt: string;
 };
+
+function dedupeInboxMessages(messages: InboxMessage[]) {
+  const seen = new Set<string>();
+  return messages.filter((message) => {
+    if (seen.has(message.id)) return false;
+    seen.add(message.id);
+    return true;
+  });
+}
 
 type Me = {
   id: string;
@@ -45,6 +55,8 @@ type Me = {
   email?: string;
   username?: string;
   fullName?: string;
+  rank?: string;
+  specializations?: string[];
 };
 
 type ManagedUser = {
@@ -85,9 +97,9 @@ export default function App() {
   const [me, setMe] = useState<Me | null>(null);
   const [status, setStatus] = useState("Ready");
 
-  const [email, setEmail] = useState("client@example.com");
-  const [password, setPassword] = useState("ClientPass123!");
-  const [fullName, setFullName] = useState("Client Example");
+  const [email, setEmail] = useState("client1@example.com");
+  const [password, setPassword] = useState("SecurePass123!");
+  const [fullName, setFullName] = useState("John Client");
   const [state, setState] = useState("Lagos");
 
   const [adminUsername, setAdminUsername] = useState("GivenchiCodes");
@@ -96,7 +108,7 @@ export default function App() {
   const [superuserEmail, setSuperuserEmail] = useState("superuser@example.com");
   const [superuserPassword, setSuperuserPassword] = useState("TempSuper123!");
 
-  const [topic, setTopic] = useState("I need strategic guidance for my product and launch timeline.");
+  const [topic, setTopic] = useState("Time is infinite");
   const [preferredDate, setPreferredDate] = useState("2026-06-15");
   const [preferredTime, setPreferredTime] = useState("10:00");
 
@@ -129,16 +141,26 @@ export default function App() {
   );
   const [aiOutput, setAiOutput] = useState("");
 
-  const [newSuperuserName, setNewSuperuserName] = useState("Consultant Prime");
-  const [newSuperuserEmail, setNewSuperuserEmail] = useState("consultant.prime@example.com");
-  const [newSuperuserPassword, setNewSuperuserPassword] = useState("SuperuserPass123!");
-  const [newSuperuserRank, setNewSuperuserRank] = useState("Principal Advisor");
-  const [newSuperuserSpecs, setNewSuperuserSpecs] = useState("AI Strategy, Product Leadership");
+  const [newSuperuserName, _setNewSuperuserName] = useState("Consultant Prime");
+  const [newSuperuserEmail, _setNewSuperuserEmail] = useState("consultant.prime@example.com");
+  const [newSuperuserPassword, _setNewSuperuserPassword] = useState("SuperuserPass123!");
+  const [newSuperuserRank, _setNewSuperuserRank] = useState("Principal Advisor");
+  const [newSuperuserSpecs, _setNewSuperuserSpecs] = useState("AI Strategy, Product Leadership");
 
   const [inbox, setInbox] = useState<InboxMessage[]>([]);
   const [chatBody, setChatBody] = useState("Hello, I want to discuss my pending appointment request.");
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [selectedMessageId, setSelectedMessageId] = useState("");
+  const [superuserView, setSuperuserView] = useState<"dashboard" | "messages" | "appointments">("dashboard");
   const isAuthenticated = Boolean(token && me);
+
+  const unreadCount = useMemo(() => inbox.filter((m) => !m.readAt).length, [inbox]);
+  const selectedMessage = useMemo(() => inbox.find((m) => m.id === selectedMessageId) || null, [inbox, selectedMessageId]);
+  const briefHint = selectedAppointment
+    ? selectedAppointment.status === "APPROVED"
+      ? "Approved briefs now generate the full context template and deliver it to both the client and assigned superuser inboxes."
+      : "Before approval, DeepSeek keeps the lightweight meeting brief template and stores the draft in the client inbox."
+    : "Select an appointment to generate a brief.";
 
   function showDashboardView() {
     window.location.hash = "dashboard";
@@ -270,7 +292,7 @@ export default function App() {
     }
   }
 
-  async function loadManagedUsers() {
+  async function _loadManagedUsers() {
     if (!token || me?.role !== "admin") return;
     try {
       const rows = await api<ManagedUser[]>("/api/admin/users?role=superuser", token);
@@ -280,7 +302,7 @@ export default function App() {
     }
   }
 
-  async function loadClients() {
+  async function _loadClients() {
     if (!token || me?.role !== "admin") return;
     try {
       const rows = await api<ManagedUser[]>("/api/admin/users?role=client", token);
@@ -432,7 +454,7 @@ export default function App() {
     }
   }
 
-  async function createSuperuser() {
+  async function _createSuperuser() {
     if (!token || me?.role !== "admin") return;
     try {
       await api("/api/admin/superusers", token, {
@@ -501,19 +523,44 @@ export default function App() {
   async function generateDeepseekSummary() {
     if (!token || me?.role !== "client" || !selectedAppointment) return;
     try {
-      const out = await api<{ content: string }>("/api/ai/deepseek", token, {
+      const out = await api<{ content: string; phase: "pre-approval" | "post-approval" }>("/api/ai/deepseek", token, {
         method: "POST",
         body: JSON.stringify({ appointmentId: selectedAppointment.id, prompt: deepseekPrompt })
       });
       setAiOutput(out.content);
-      setStatus("README.md and PDF generated for this appointment");
+      setStatus(out.phase === "post-approval" ? "Approved brief delivered to client and superuser inboxes" : "Draft README.md and PDF generated for the client inbox");
       await loadAppointments();
     } catch (error) {
       setStatus((error as Error).message);
     }
   }
 
-  async function sendSummaryEmail(superuserId: string) {
+  async function downloadAttachment(appointmentId: string, attachmentId: string, fileName: string) {
+    if (!token) return;
+
+    const res = await fetch(`${API_BASE}/api/attachments/${appointmentId}/${attachmentId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || "Failed to download attachment");
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  }
+
+  async function _sendSummaryEmail(superuserId: string) {
     if (!token || me?.role !== "admin" || !selectedAppointment) return;
     try {
       await api("/api/admin/appointments/send-summary-email", token, {
@@ -535,7 +582,7 @@ export default function App() {
     if (!token) return;
     try {
       const out = await api<{ unreadCount: number; messages: InboxMessage[] }>("/api/inbox", token);
-      setInbox(out.messages);
+      setInbox(dedupeInboxMessages(out.messages));
     } catch (error) {
       setStatus((error as Error).message);
     }
@@ -560,11 +607,39 @@ export default function App() {
           body: JSON.stringify({ toUserId: clientId, body: chatBody, appointmentId: selectedAppointment?.id })
         });
       }
+      if (me.role === "superuser") {
+        const clientId = selectedAppointment?.clientId;
+        if (!clientId) throw new Error("Select an appointment first");
+        await api("/api/chat/send", token, {
+          method: "POST",
+          body: JSON.stringify({ toUserId: clientId, body: chatBody, appointmentId: selectedAppointment?.id })
+        });
+      }
       setChatBody("");
       setStatus("Message sent");
       await loadInbox();
     } catch (error) {
       setStatus((error as Error).message);
+    }
+  }
+
+  async function markMessageAsRead(messageId: string) {
+    if (!token || !me) return;
+    try {
+      const msg = inbox.find((m) => m.id === messageId);
+      if (msg && !msg.readAt) {
+        // Update local state immediately
+        setInbox((prev) =>
+          prev.map((m) => (m.id === messageId ? { ...m, readAt: new Date().toISOString() } : m))
+        );
+        // Call server endpoint
+        await api(`/api/chat/${messageId}/read`, token, {
+          method: "POST",
+          body: JSON.stringify({})
+        });
+      }
+    } catch (error) {
+      console.error("Error marking message as read:", error);
     }
   }
 
@@ -577,7 +652,7 @@ export default function App() {
     });
 
     s.on("chat:message", (msg: InboxMessage) => {
-      setInbox((prev) => [msg, ...prev]);
+      setInbox((prev) => dedupeInboxMessages([msg, ...prev]));
     });
 
     s.on("chat:delivery", () => {
@@ -943,6 +1018,7 @@ export default function App() {
           {me?.role === "client" && selectedAppointment && (
             <section className="card">
               <h2>DeepSeek Dialogue</h2>
+              <p className="muted brief-hint">{briefHint}</p>
               <textarea
                 value={deepseekPrompt}
                 onChange={(e) => setDeepseekPrompt(e.target.value)}
@@ -952,18 +1028,170 @@ export default function App() {
               <div className="row">
                 <button onClick={generateDeepseekSummary}>Generate README.md + PDF</button>
               </div>
-              <pre>{aiOutput || "No AI output yet."}</pre>
+              <pre className="brief-output">{aiOutput || "No AI output yet."}</pre>
             </section>
           )}
 
-          {me?.role === "superuser" && selectedAppointment && selectedAppointment.superuserId === me.id && (
-            <section className="card">
-              <h2>Superuser actions</h2>
-              <p className="muted">You can confirm or reject appointments assigned to you.</p>
-              <div className="row">
-                <button onClick={() => respondAsSuperuser(true)}>Accept selected</button>
-                <button className="danger" onClick={() => respondAsSuperuser(false)}>Reject selected</button>
+          {me?.role === "superuser" && (
+            <section className="card superuser-dashboard">
+              <div className="panel-tabs">
+                <button className={superuserView === "dashboard" ? "active" : ""} onClick={() => setSuperuserView("dashboard")}>Dashboard</button>
+                <button className={superuserView === "messages" ? "active" : ""} onClick={() => setSuperuserView("messages")}>
+                  Messages ({unreadCount} unread)
+                </button>
+                <button className={superuserView === "appointments" ? "active" : ""} onClick={() => setSuperuserView("appointments")}>Appointments</button>
               </div>
+
+              {superuserView === "dashboard" && (
+                <div className="stack">
+                  <h2>Welcome, {me?.fullName || "Superuser"}</h2>
+                  <div className="glass-grid">
+                    <article className="glass-tile">
+                      <span>Your Rank</span>
+                      <strong>{me?.rank || "N/A"}</strong>
+                    </article>
+                    <article className="glass-tile">
+                      <span>Specializations</span>
+                      <strong>{me?.specializations?.length || 0} areas</strong>
+                    </article>
+                    <article className="glass-tile">
+                      <span>Active Assignments</span>
+                      <strong>{appointments.filter((a) => a.superuserId === me?.id && a.status !== "APPROVED" && a.status !== "REJECTED").length}</strong>
+                    </article>
+                    <article className="glass-tile">
+                      <span>Unread Messages</span>
+                      <strong>{unreadCount}</strong>
+                    </article>
+                  </div>
+                  <h3>Quick Actions</h3>
+                  <div className="row">
+                    <button onClick={() => setSuperuserView("messages")}>📧 View Messages ({unreadCount})</button>
+                    <button className="ghost" onClick={() => setSuperuserView("appointments")}>📋 Your Assignments</button>
+                    <button className="ghost" onClick={loadInbox}>🔄 Refresh</button>
+                  </div>
+                  {me?.specializations && me.specializations.length > 0 && (
+                    <div className="info-box">
+                      <h4>Your Specializations</h4>
+                      <div className="tag-list">
+                        {me.specializations.map((spec) => (
+                          <span key={spec} className="tag">{spec}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {superuserView === "messages" && (
+                <div className="stack">
+                  <h2>Message Inbox</h2>
+                  <p className="muted">Messages sent to you by administrators and clients regarding your appointments</p>
+                  {inbox.length === 0 ? (
+                    <p className="muted" style={{ textAlign: "center", padding: "2rem" }}>No messages yet. Check back later!</p>
+                  ) : (
+                    <div className="message-container">
+                      <div className="message-list">
+                        <h3>Messages ({inbox.length})</h3>
+                        <div className="messages-stack">
+                          {inbox.map((msg) => (
+                            <button
+                              key={msg.id}
+                              className={`message-item ${selectedMessageId === msg.id ? "selected" : ""} ${!msg.readAt ? "unread" : ""}`}
+                              onClick={() => {
+                                setSelectedMessageId(msg.id);
+                                if (!msg.readAt) {
+                                  void markMessageAsRead(msg.id);
+                                }
+                              }}
+                            >
+                              <div className="message-preview">
+                                <strong>{msg.body.substring(0, 50)}{msg.body.length > 50 ? "..." : ""}</strong>
+                                <small>{new Date(msg.createdAt).toLocaleString()}</small>
+                              </div>
+                              {!msg.readAt && <span className="badge">●</span>}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {selectedMessage && (
+                        <div className="message-detail">
+                          <h3>Message Details</h3>
+                          <div className="message-content">
+                            <p className="message-body">{selectedMessage.body}</p>
+                            {selectedMessage.attachments && selectedMessage.attachments.length > 0 && (
+                              <div className="attachment-list">
+                                {selectedMessage.attachments.map((attachment) => (
+                                  <button
+                                    key={attachment.id}
+                                    className="attachment-chip"
+                                    onClick={() => {
+                                      if (!selectedMessage.appointmentId) return;
+                                      void downloadAttachment(selectedMessage.appointmentId, attachment.id, attachment.fileName);
+                                    }}
+                                  >
+                                    {attachment.type.toUpperCase()} · {attachment.fileName}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            <div className="message-meta">
+                              <small><strong>From:</strong> {selectedMessage.fromUserId}</small>
+                              <small><strong>Sent:</strong> {new Date(selectedMessage.createdAt).toLocaleString()}</small>
+                              {selectedMessage.readAt && <small><strong>Read:</strong> {new Date(selectedMessage.readAt).toLocaleString()}</small>}
+                              {selectedMessage.appointmentId && <small><strong>Regarding:</strong> {selectedMessage.appointmentId}</small>}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div className="row">
+                    <button className="ghost" onClick={loadInbox}>Refresh Inbox</button>
+                  </div>
+                </div>
+              )}
+
+              {superuserView === "appointments" && (
+                <div className="stack">
+                  <h2>Your Appointments</h2>
+                  <p className="muted">Appointments assigned to you for approval or rejection</p>
+                  {appointments.filter((a) => a.superuserId === me?.id).length === 0 ? (
+                    <p className="muted" style={{ textAlign: "center", padding: "2rem" }}>No appointments assigned to you yet</p>
+                  ) : (
+                    <div className="appointment-grid">
+                      {appointments
+                        .filter((a) => a.superuserId === me?.id)
+                        .map((apt) => (
+                          <div key={apt.id} className="appointment-card">
+                            <h4>{apt.topic}</h4>
+                            <div className="appointment-details">
+                              <p><strong>Status:</strong> <span className={`status status-${apt.status.toLowerCase()}`}>{apt.status}</span></p>
+                              <p><strong>Client ID:</strong> {apt.clientId}</p>
+                              {apt.preferredDates && apt.preferredDates.length > 0 && (
+                                <p><strong>Preferred:</strong> {apt.preferredDates[0].date} {apt.preferredDates[0].timeSlots.join(", ")}</p>
+                              )}
+                            </div>
+                            {apt.status === "FORWARDED_TO_SUPERUSER" && (
+                              <div className="action-buttons">
+                                <button onClick={() => {
+                                  setSelectedAppointmentId(apt.id);
+                                  void respondAsSuperuser(true);
+                                }}>✓ Accept</button>
+                                <button className="danger" onClick={() => {
+                                  setSelectedAppointmentId(apt.id);
+                                  void respondAsSuperuser(false);
+                                }}>✗ Reject</button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                  <div className="row">
+                    <button className="ghost" onClick={loadAppointments}>Refresh Appointments</button>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
@@ -977,7 +1205,23 @@ export default function App() {
             <div className="stack inbox">
               {inbox.map((m) => (
                 <div key={m.id} className="inbox-item">
-                  <div>{m.body}</div>
+                  <div className="inbox-body">{m.body}</div>
+                  {m.attachments && m.attachments.length > 0 && (
+                    <div className="attachment-list">
+                      {m.attachments.map((attachment) => (
+                        <button
+                          key={attachment.id}
+                          className="attachment-chip"
+                          onClick={() => {
+                            if (!m.appointmentId) return;
+                            void downloadAttachment(m.appointmentId, attachment.id, attachment.fileName);
+                          }}
+                        >
+                          {attachment.fileName}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <small>
                     {m.createdAt} | from: {m.fromUserId} | {m.readAt ? "read" : "unread"}
                   </small>

@@ -65,6 +65,7 @@ export interface ChatMessage {
   toUserId: string;
   body: string;
   appointmentId?: string;
+  attachments?: Attachment[];
   createdAt: string;
   deliveredAt?: string;
   readAt?: string;

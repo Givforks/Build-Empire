@@ -72,7 +72,7 @@ services:
         value: /etc/secrets/jwt_secret
       - key: ADMIN_PASSWORD_FILE
         value: /etc/secrets/admin_password
-      - key: SMTP_PASSWORD_FILE
+      - key: SMTP_PASS_FILE
         value: /etc/secrets/smtp_password
       - key: AUTO_RUN_MIGRATIONS
         value: "true"
@@ -103,7 +103,7 @@ envVarGroups:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
-      - key: SMTP_PASSWORD
+      - key: SMTP_PASS
         sync: false
 RENDER_CONFIG
     echo "✅ render.yaml created"

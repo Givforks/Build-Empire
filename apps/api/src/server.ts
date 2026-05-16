@@ -13,7 +13,7 @@ import { Server as SocketIOServer } from "socket.io";
 import { requireAuth, requireRole, signToken } from "./auth.js";
 import { config } from "./config.js";
 import { attachmentsDir, database, initializeSeedData } from "./db.js";
-import { buildMeetingSummary } from "./services/ai.js";
+import { buildMeetingBrief } from "./services/ai.js";
 import { createPdfFromText } from "./services/pdf.js";
 import {
   sendSummaryEmail,
@@ -21,7 +21,7 @@ import {
   sendAppointmentApproved,
   sendAppointmentRejected,
   sendAppointmentReminder,
-  sendMessageNotification
+  // sendMessageNotification (not used)
 } from "./services/email.js";
 import type { Attachment, ChatMessage, PreferredDate, Role } from "./types.js";
 
@@ -178,6 +178,100 @@ function sanitizeError(error: unknown) {
   return "Unknown error";
 }
 
+function getCorsOrigins() {
+  if (config.WEB_ORIGIN === "*") return true;
+  if (config.WEB_ORIGINS?.length) return config.WEB_ORIGINS;
+  return config.WEB_ORIGIN;
+}
+
+function getAttachmentFromAppointment(appointment: any, attachmentId: string) {
+  return (appointment.attachments || []).find((attachment: Attachment) => attachment.id === attachmentId);
+}
+
+type BriefPhase = "pre-approval" | "post-approval";
+
+async function persistBriefArtifacts(input: {
+  appointment: any;
+  prompt: string;
+  phase: BriefPhase;
+  sourceUserId: string;
+  recipients: string[];
+  superuser?: { fullName?: string; rank?: string; specializations?: string[] };
+  pushToUser: (userId: string, event: string, payload: unknown) => void;
+}) {
+  const summaryText = buildMeetingBrief({
+    phase: input.phase,
+    prompt: input.prompt,
+    appointmentTopic: input.appointment.topic,
+    appointmentStatus: input.appointment.status,
+    preferredDates: input.appointment.preferredDates,
+    superuser: input.superuser
+  });
+  const fileToken = uuid();
+  const dir = attachmentsDir();
+  const phaseToken = input.phase === "post-approval" ? "approved" : "draft";
+
+  const readmeFileName = `appointment-${input.appointment.id}-${phaseToken}-${fileToken}.README.md`;
+  const readmePath = path.join(dir, readmeFileName);
+  fs.writeFileSync(readmePath, summaryText, "utf-8");
+
+  const pdfFileName = `appointment-${input.appointment.id}-${phaseToken}-${fileToken}.summary.pdf`;
+  const pdfPath = path.join(dir, pdfFileName);
+  await createPdfFromText(pdfPath, "Appointment Meeting Brief", summaryText);
+
+  const readmeAttachment: Attachment = {
+    id: uuid(),
+    type: "readme",
+    fileName: readmeFileName,
+    filePath: toRelativePath(readmePath),
+    createdAt: now()
+  };
+  const pdfAttachment: Attachment = {
+    id: uuid(),
+    type: "pdf",
+    fileName: pdfFileName,
+    filePath: toRelativePath(pdfPath),
+    createdAt: now()
+  };
+
+  database.addAIOutput({
+    id: uuid(),
+    appointmentId: input.appointment.id,
+    clientId: input.appointment.clientId,
+    prompt: input.prompt,
+    summaryText,
+    readmeAttachmentId: readmeAttachment.id,
+    pdfAttachmentId: pdfAttachment.id,
+    createdAt: now()
+  });
+
+  const updatedAppointment = database.updateAppointment(input.appointment.id, {
+    attachments: [...(input.appointment.attachments || []), readmeAttachment, pdfAttachment]
+  });
+
+  const attachments = [readmeAttachment, pdfAttachment];
+  const messages = input.recipients
+    .filter((recipientId) => Boolean(recipientId))
+    .map((recipientId) => {
+      const message = database.addChatMessage({
+        fromUserId: input.sourceUserId,
+        toUserId: recipientId,
+        body: summaryText,
+        appointmentId: input.appointment.id,
+        attachments
+      });
+      input.pushToUser(recipientId, "chat:message", message);
+      return message;
+    });
+
+  return {
+    summaryText,
+    attachments,
+    appointment: updatedAppointment,
+    messages
+  };
+}
+
 export function createApp() {
   const app = express();
   // Initialize Sentry if DSN present
@@ -214,7 +308,7 @@ export function createApp() {
     });
     next();
   });
-  app.use(cors({ origin: config.WEB_ORIGIN === "*" ? true : config.WEB_ORIGIN }));
+  app.use(cors({ origin: getCorsOrigins() }));
   app.use(express.json({ limit: "1mb" }));
 
   app.use(
@@ -600,21 +694,44 @@ export function createApp() {
       return res.status(400).json({ error: "adminDecidedDateTime is required for approval" });
     }
 
+    const sourceAdminId = (req as any).auth.userId;
+    const resolvedSuperuser = appointment.superuserId
+      ? database.findUserById(appointment.superuserId)
+      : database.findSuperusers()[0];
+
     const updated = database.updateAppointment(appointment.id, {
       status: parsed.data.decision,
-      adminDecidedDateTime: parsed.data.adminDecidedDateTime
+      adminDecidedDateTime: parsed.data.adminDecidedDateTime,
+      superuserId: parsed.data.decision === "APPROVED" ? resolvedSuperuser?.id || appointment.superuserId : appointment.superuserId
     });
+
+    if (!updated) {
+      return res.status(500).json({ error: "Failed to update appointment" });
+    }
+
+    if (parsed.data.decision === "APPROVED") {
+      try {
+        await persistBriefArtifacts({
+          appointment: updated,
+          prompt: updated.topic,
+          phase: "post-approval",
+          sourceUserId: sourceAdminId,
+          recipients: [updated.clientId, resolvedSuperuser?.id || ""],
+          superuser: resolvedSuperuser,
+          pushToUser
+        });
+      } catch (error) {
+        console.error("Failed to create approved brief:", error);
+      }
+    }
 
     // Send decision email to client
     const client = database.findUserById(appointment.clientId);
     if (client) {
       try {
         if (parsed.data.decision === "APPROVED") {
-          const superuser = appointment.superuserId 
-            ? database.findUserById(appointment.superuserId)
-            : undefined;
-          if (superuser) {
-            await sendAppointmentApproved(client, updated, superuser);
+          if (resolvedSuperuser) {
+            await sendAppointmentApproved(client, updated, resolvedSuperuser);
           }
         } else if (parsed.data.decision === "REJECTED") {
           await sendAppointmentRejected(client, updated);
@@ -639,53 +756,26 @@ export function createApp() {
       return res.status(404).json({ error: "Appointment not found" });
     }
 
-    const summaryText = buildMeetingSummary(parsed.data.prompt);
-    const fileToken = uuid();
-    const dir = attachmentsDir();
-
-    const readmeFileName = `appointment-${appointment.id}-${fileToken}.README.md`;
-    const readmePath = path.join(dir, readmeFileName);
-    fs.writeFileSync(readmePath, summaryText, "utf-8");
-
-    const pdfFileName = `appointment-${appointment.id}-${fileToken}.summary.pdf`;
-    const pdfPath = path.join(dir, pdfFileName);
-    await createPdfFromText(pdfPath, "Appointment Meeting Brief", summaryText);
-
-    const readmeAttachment: Attachment = {
-      id: uuid(),
-      type: "readme",
-      fileName: readmeFileName,
-      filePath: toRelativePath(readmePath),
-      createdAt: now()
-    };
-    const pdfAttachment: Attachment = {
-      id: uuid(),
-      type: "pdf",
-      fileName: pdfFileName,
-      filePath: toRelativePath(pdfPath),
-      createdAt: now()
-    };
-
-    database.addAIOutput({
-      id: uuid(),
-      appointmentId: appointment.id,
-      clientId: auth.userId,
+    const phase: BriefPhase = appointment.status === "APPROVED" ? "post-approval" : "pre-approval";
+    const resolvedSuperuser = appointment.superuserId
+      ? database.findUserById(appointment.superuserId)
+      : database.findSuperusers()[0];
+    const delivery = await persistBriefArtifacts({
+      appointment,
       prompt: parsed.data.prompt,
-      summaryText,
-      readmeAttachmentId: readmeAttachment.id,
-      pdfAttachmentId: pdfAttachment.id,
-      createdAt: now()
-    });
-
-    const updated = database.updateAppointment(appointment.id, {
-      attachments: [...appointment.attachments, readmeAttachment, pdfAttachment]
+      phase,
+      sourceUserId: auth.userId,
+      recipients: phase === "post-approval" && resolvedSuperuser ? [auth.userId, resolvedSuperuser.id] : [auth.userId],
+      superuser: resolvedSuperuser,
+      pushToUser
     });
 
     return res.json({
       appointmentId: appointment.id,
-      attachments: [readmeAttachment, pdfAttachment],
-      content: summaryText,
-      appointment: updated
+      attachments: delivery.attachments,
+      content: delivery.summaryText,
+      appointment: delivery.appointment,
+      phase
     });
   });
 
@@ -741,6 +831,34 @@ export function createApp() {
     return res.json({ unreadCount, messages });
   });
 
+  app.get("/api/attachments/:appointmentId/:attachmentId", requireAuth, (req, res) => {
+    const auth = (req as any).auth;
+    const appointment = database.findAppointmentById(req.params.appointmentId);
+    if (!appointment) {
+      return res.status(404).json({ error: "Appointment not found" });
+    }
+
+    const canAccess =
+      appointment.clientId === auth.userId ||
+      appointment.adminId === auth.userId ||
+      appointment.superuserId === auth.userId;
+    if (!canAccess) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const attachment = getAttachmentFromAppointment(appointment, req.params.attachmentId);
+    if (!attachment) {
+      return res.status(404).json({ error: "Attachment not found" });
+    }
+
+    const absolutePath = path.resolve(process.cwd(), attachment.filePath);
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ error: "Attachment file missing" });
+    }
+
+    return res.download(absolutePath, attachment.fileName);
+  });
+
   app.get("/api/chat/thread/:peerUserId", requireAuth, (req, res) => {
     const auth = (req as any).auth;
     const thread = database.listThread(auth.userId, req.params.peerUserId);
@@ -773,7 +891,7 @@ export function createApp() {
 
   const httpServer = createServer(app);
   const io = new SocketIOServer(httpServer, {
-    cors: { origin: config.WEB_ORIGIN === "*" ? true : config.WEB_ORIGIN }
+    cors: { origin: getCorsOrigins() }
   });
 
   const userSockets = new Map<string, Set<string>>();
