@@ -68,7 +68,11 @@ jobs:
           else
             echo "No POSTMAN_API_KEY secret found; proceeding (test may use committed env file or fail)"
           fi
-          MCP_AUTO_MOCK=1 node FULL-STACK-HEAVY/postman-mcp-test.js
+          if [ -f FULL-STACK-HEAVY/postman-mcp-test.js ]; then
+            MCP_AUTO_MOCK=1 node FULL-STACK-HEAVY/postman-mcp-test.js
+          else
+            echo "Skipping Postman MCP integration: FULL-STACK-HEAVY/postman-mcp-test.js is not present in this repository checkout."
+          fi
 
       - name: Publish Sentry release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
