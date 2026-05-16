@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   to_user_id UUID NOT NULL,
   body TEXT NOT NULL,
   appointment_id UUID,
+  attachments JSONB NOT NULL DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   delivered_at TIMESTAMPTZ,
   read_at TIMESTAMPTZ

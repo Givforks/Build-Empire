@@ -26,8 +26,7 @@ const schema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_PASS_FILE: z.string().optional(),
-  SMTP_FROM: z.string().default("no-reply@build-empire.local")
-  ,
+  SMTP_FROM: z.string().default("no-reply@build-empire.local"),
   SENTRY_DSN: z.string().optional()
 });
 
@@ -48,6 +47,11 @@ function fromFile(filePath?: string) {
 const jwtSecret = fromFile(parsed.data.JWT_SECRET_FILE) || parsed.data.JWT_SECRET;
 const adminPassword = fromFile(parsed.data.ADMIN_PASSWORD_FILE) || parsed.data.ADMIN_PASSWORD;
 const smtpPass = fromFile(parsed.data.SMTP_PASS_FILE) || parsed.data.SMTP_PASS;
+const webOrigins = parsed.data.WEB_ORIGIN
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const primaryWebOrigin = webOrigins[0] || "http://localhost:5173";
 
 if (!jwtSecret || jwtSecret.length < 12) {
   throw new Error("JWT secret must be at least 12 characters.");
@@ -55,6 +59,8 @@ if (!jwtSecret || jwtSecret.length < 12) {
 
 export const config = {
   ...parsed.data,
+  WEB_ORIGIN: primaryWebOrigin,
+  WEB_ORIGINS: webOrigins,
   JWT_SECRET: jwtSecret,
   ADMIN_PASSWORD: adminPassword,
   SMTP_PASS: smtpPass,

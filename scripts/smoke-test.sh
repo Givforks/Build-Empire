@@ -20,6 +20,7 @@ PORT="$API_PORT" \
 JWT_SECRET="smoke-secret-123456" \
 ADMIN_USERNAME="GivenchiCodes" \
 ADMIN_PASSWORD="Givenchi1@@@@@" \
+DATABASE_URL="" \
 DATA_DIR="$DATA_DIR" \
 node ./apps/api/dist/index.js >"$LOG_FILE" 2>&1 &
 API_PID=$!

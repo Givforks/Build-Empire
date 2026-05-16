@@ -20,6 +20,20 @@ function parseJsonValue<T>(value: unknown, fallback: T): T {
   return value as T;
 }
 
+function rowToChatMessage(row: any): ChatMessage {
+  return {
+    id: row.id,
+    fromUserId: row.from_user_id,
+    toUserId: row.to_user_id,
+    body: row.body,
+    appointmentId: row.appointment_id || undefined,
+    attachments: parseJsonValue(row.attachments, []),
+    createdAt: row.created_at,
+    deliveredAt: row.delivered_at || undefined,
+    readAt: row.read_at || undefined
+  };
+}
+
 function rowToUser(row: any): User {
   return {
     id: row.id,
@@ -274,32 +288,32 @@ export const database: any = {
     const id = uuid();
     const createdAt = now();
     await query(
-      `INSERT INTO chat_messages(id, from_user_id, to_user_id, body, appointment_id, created_at) VALUES($1,$2,$3,$4,$5,$6)`,
-      [id, payload.fromUserId, payload.toUserId, payload.body, payload.appointmentId || null, createdAt]
+      `INSERT INTO chat_messages(id, from_user_id, to_user_id, body, appointment_id, attachments, created_at) VALUES($1,$2,$3,$4,$5,$6,$7)`,
+      [id, payload.fromUserId, payload.toUserId, payload.body, payload.appointmentId || null, JSON.stringify(payload.attachments || []), createdAt]
     );
-    return { ...payload, id, createdAt } as ChatMessage;
+    return { ...payload, attachments: payload.attachments || [], id, createdAt } as ChatMessage;
   },
   async markChatDelivered(messageId: string) {
     const deliveredAt = now();
     const res = await query(`UPDATE chat_messages SET delivered_at=$1 WHERE id=$2 RETURNING *`, [deliveredAt, messageId]);
-    return res.rows[0];
+    return res.rows[0] ? rowToChatMessage(res.rows[0]) : undefined;
   },
   async markChatRead(messageId: string, userId: string) {
     const readAt = now();
     const res = await query(`UPDATE chat_messages SET read_at=$1 WHERE id=$2 AND to_user_id=$3 RETURNING *`, [readAt, messageId, userId]);
-    return res.rows[0];
+    return res.rows[0] ? rowToChatMessage(res.rows[0]) : undefined;
   },
   async listInbox(userId: string) {
     const res = await query<ChatMessage>(`SELECT * FROM chat_messages WHERE to_user_id=$1 ORDER BY created_at DESC`, [userId]);
-    return res.rows;
+    return res.rows.map((row: any) => rowToChatMessage(row));
   },
   async listUndeliveredMessages(userId: string) {
     const res = await query<ChatMessage>(`SELECT * FROM chat_messages WHERE to_user_id=$1 AND delivered_at IS NULL`, [userId]);
-    return res.rows;
+    return res.rows.map((row: any) => rowToChatMessage(row));
   },
   async listThread(userId: string, peerUserId: string) {
     const res = await query<ChatMessage>(`SELECT * FROM chat_messages WHERE (from_user_id=$1 AND to_user_id=$2) OR (from_user_id=$2 AND to_user_id=$1) ORDER BY created_at ASC`, [userId, peerUserId]);
-    return res.rows;
+    return res.rows.map((row: any) => rowToChatMessage(row));
   },
   async addAIOutput(entry: Database["aiOutputs"][number]) {
     const id = uuid();
