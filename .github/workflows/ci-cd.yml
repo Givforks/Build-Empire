@@ -11,6 +11,8 @@ on:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -107,6 +109,8 @@ EOF
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: test-and-build
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
     permissions:
       contents: read
       packages: write
@@ -134,8 +138,8 @@ EOF
           file: apps/api/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ env.REPO_OWNER_LOWER }}/build-empire-api:latest
-            ghcr.io/${{ env.REPO_OWNER_LOWER }}/build-empire-api:${{ github.sha }}
+            ghcr.io/${{ toLower(github.repository_owner) }}/build-empire-api:latest
+            ghcr.io/${{ toLower(github.repository_owner) }}/build-empire-api:${{ github.sha }}
 
       - name: Build and push Web image
         uses: docker/build-push-action@v6
@@ -144,8 +148,8 @@ EOF
           file: apps/web/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ env.REPO_OWNER_LOWER }}/build-empire-web:latest
-            ghcr.io/${{ env.REPO_OWNER_LOWER }}/build-empire-web:${{ github.sha }}
+            ghcr.io/${{ toLower(github.repository_owner) }}/build-empire-web:latest
+            ghcr.io/${{ toLower(github.repository_owner) }}/build-empire-web:${{ github.sha }}
 
       - name: Run DB migrations (optional)
         if: ${{ secrets.DATABASE_URL != '' }}
@@ -166,6 +170,8 @@ EOF
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: docker-publish
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
     steps:
       - name: Set lowercase repo owner
         run: echo "REPO_OWNER_LOWER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
