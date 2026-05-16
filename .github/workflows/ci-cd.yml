@@ -42,6 +42,17 @@ jobs:
       - name: Run build
         run: npm run build
 
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke test (signup -> appointment -> AI flow)..."
+          rm -rf apps/api/data-smoke/* || true
+          bash scripts/smoke-test.sh
+
+      - name: Run Postman MCP integration (mock)
+        run: |
+          echo "Running Postman MCP integration test with local mock..."
+          MCP_AUTO_MOCK=1 node FULL-STACK-HEAVY/postman-mcp-test.js
+
       - name: Publish Sentry release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
