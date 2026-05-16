@@ -11,6 +11,8 @@ on:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -107,6 +109,8 @@ EOF
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: test-and-build
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
     permissions:
       contents: read
       packages: write
@@ -126,15 +130,13 @@ EOF
 
       - name: Build and push API image
         run: |
-          OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
-          echo "Building API image for owner: $OWNER_LOWER"
-          docker buildx build --platform linux/amd64 -f apps/api/Dockerfile -t "ghcr.io/${OWNER_LOWER}/build-empire-api:latest" -t "ghcr.io/${OWNER_LOWER}/build-empire-api:${GITHUB_SHA}" --push .
+          echo "Building API image for owner: givforks"
+          docker buildx build --platform linux/amd64 -f apps/api/Dockerfile -t "ghcr.io/givforks/build-empire-api:latest" -t "ghcr.io/givforks/build-empire-api:${GITHUB_SHA}" --push .
 
       - name: Build and push Web image
         run: |
-          OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
-          echo "Building Web image for owner: $OWNER_LOWER"
-          docker buildx build --platform linux/amd64 -f apps/web/Dockerfile -t "ghcr.io/${OWNER_LOWER}/build-empire-web:latest" -t "ghcr.io/${OWNER_LOWER}/build-empire-web:${GITHUB_SHA}" --push .
+          echo "Building Web image for owner: givforks"
+          docker buildx build --platform linux/amd64 -f apps/web/Dockerfile -t "ghcr.io/givforks/build-empire-web:latest" -t "ghcr.io/givforks/build-empire-web:${GITHUB_SHA}" --push .
 
       - name: Run DB migrations (optional)
         if: ${{ secrets.DATABASE_URL != '' }}
@@ -148,16 +150,18 @@ EOF
       - name: Image build summary
         run: |
           echo "✅ Docker images built and pushed successfully"
-          echo "API Image: ghcr.io/${{ env.REPO_OWNER_LOWER }}/build-empire-api:latest"
-          echo "Web Image: ghcr.io/${{ env.REPO_OWNER_LOWER }}/build-empire-web:latest"
+          echo "API Image: ghcr.io/givforks/build-empire-api:latest"
+          echo "Web Image: ghcr.io/givforks/build-empire-web:latest"
 
   deploy-notes:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: docker-publish
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
     steps:
       - name: Set lowercase repo owner
-        run: echo "REPO_OWNER_LOWER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+        run: echo "REPO_OWNER_LOWER=givforks" >> $GITHUB_ENV
 
       - name: Deployment summary
         run: |
@@ -171,8 +175,8 @@ EOF
           echo "✅ Docker: Images built and pushed to GHCR"
           echo ""
           echo "🐳 Docker Images Published:"
-          echo "  API:  ghcr.io/${{ env.REPO_OWNER_LOWER }}/build-empire-api:latest"
-          echo "  Web:  ghcr.io/${{ env.REPO_OWNER_LOWER }}/build-empire-web:latest"
+          echo "  API:  ghcr.io/givforks/build-empire-api:latest"
+          echo "  Web:  ghcr.io/givforks/build-empire-web:latest"
           echo ""
           echo "📚 Deployment Options:"
           echo "  1. Render.com:     npm run deploy:render"
