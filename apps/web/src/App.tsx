@@ -141,11 +141,11 @@ export default function App() {
   );
   const [aiOutput, setAiOutput] = useState("");
 
-  const [newSuperuserName, setNewSuperuserName] = useState("Consultant Prime");
-  const [newSuperuserEmail, setNewSuperuserEmail] = useState("consultant.prime@example.com");
-  const [newSuperuserPassword, setNewSuperuserPassword] = useState("SuperuserPass123!");
-  const [newSuperuserRank, setNewSuperuserRank] = useState("Principal Advisor");
-  const [newSuperuserSpecs, setNewSuperuserSpecs] = useState("AI Strategy, Product Leadership");
+  const [newSuperuserName, _setNewSuperuserName] = useState("Consultant Prime");
+  const [newSuperuserEmail, _setNewSuperuserEmail] = useState("consultant.prime@example.com");
+  const [newSuperuserPassword, _setNewSuperuserPassword] = useState("SuperuserPass123!");
+  const [newSuperuserRank, _setNewSuperuserRank] = useState("Principal Advisor");
+  const [newSuperuserSpecs, _setNewSuperuserSpecs] = useState("AI Strategy, Product Leadership");
 
   const [inbox, setInbox] = useState<InboxMessage[]>([]);
   const [chatBody, setChatBody] = useState("Hello, I want to discuss my pending appointment request.");
@@ -292,7 +292,7 @@ export default function App() {
     }
   }
 
-  async function loadManagedUsers() {
+  async function _loadManagedUsers() {
     if (!token || me?.role !== "admin") return;
     try {
       const rows = await api<ManagedUser[]>("/api/admin/users?role=superuser", token);
@@ -302,7 +302,7 @@ export default function App() {
     }
   }
 
-  async function loadClients() {
+  async function _loadClients() {
     if (!token || me?.role !== "admin") return;
     try {
       const rows = await api<ManagedUser[]>("/api/admin/users?role=client", token);
@@ -454,7 +454,7 @@ export default function App() {
     }
   }
 
-  async function createSuperuser() {
+  async function _createSuperuser() {
     if (!token || me?.role !== "admin") return;
     try {
       await api("/api/admin/superusers", token, {
@@ -560,7 +560,7 @@ export default function App() {
     window.URL.revokeObjectURL(url);
   }
 
-  async function sendSummaryEmail(superuserId: string) {
+  async function _sendSummaryEmail(superuserId: string) {
     if (!token || me?.role !== "admin" || !selectedAppointment) return;
     try {
       await api("/api/admin/appointments/send-summary-email", token, {
