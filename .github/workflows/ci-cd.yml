@@ -56,14 +56,14 @@ jobs:
         run: |
           echo "Preparing .env.postman from secrets (if available)..."
           if [ -n "$POSTMAN_API_KEY" ]; then
-            cat > FULL-STACK-HEAVY/.env.postman <<EOF
-POSTMAN_API_KEY=$POSTMAN_API_KEY
-POSTMAN_BASE_URL=https://api.postman.com
-MCP_SERVER_HOST=localhost
-MCP_SERVER_PORT=3000
-DEBUG_MCP_POSTMAN=false
-API_REQUEST_TIMEOUT=5000
-EOF
+            printf '%s\n' \
+              "POSTMAN_API_KEY=$POSTMAN_API_KEY" \
+              "POSTMAN_BASE_URL=https://api.postman.com" \
+              "MCP_SERVER_HOST=localhost" \
+              "MCP_SERVER_PORT=3000" \
+              "DEBUG_MCP_POSTMAN=false" \
+              "API_REQUEST_TIMEOUT=5000" \
+              > FULL-STACK-HEAVY/.env.postman
             echo "Wrote FULL-STACK-HEAVY/.env.postman from secret"
           else
             echo "No POSTMAN_API_KEY secret found; proceeding (test may use committed env file or fail)"
