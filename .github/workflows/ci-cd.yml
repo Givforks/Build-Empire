@@ -128,8 +128,10 @@ EOF
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set lowercase repo owner
-        run: echo "REPO_OWNER_LOWER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      - name: Compute lowercase repo owner
+        id: owner
+        run: |
+          echo "lower=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Build and push API image
         uses: docker/build-push-action@v6
@@ -138,8 +140,8 @@ EOF
           file: apps/api/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ toLower(github.repository_owner) }}/build-empire-api:latest
-            ghcr.io/${{ toLower(github.repository_owner) }}/build-empire-api:${{ github.sha }}
+            ghcr.io/${{ steps.owner.outputs.lower }}/build-empire-api:latest
+            ghcr.io/${{ steps.owner.outputs.lower }}/build-empire-api:${{ github.sha }}
 
       - name: Build and push Web image
         uses: docker/build-push-action@v6
@@ -148,8 +150,8 @@ EOF
           file: apps/web/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ toLower(github.repository_owner) }}/build-empire-web:latest
-            ghcr.io/${{ toLower(github.repository_owner) }}/build-empire-web:${{ github.sha }}
+            ghcr.io/${{ steps.owner.outputs.lower }}/build-empire-web:latest
+            ghcr.io/${{ steps.owner.outputs.lower }}/build-empire-web:${{ github.sha }}
 
       - name: Run DB migrations (optional)
         if: ${{ secrets.DATABASE_URL != '' }}
@@ -173,8 +175,10 @@ EOF
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
     steps:
-      - name: Set lowercase repo owner
-        run: echo "REPO_OWNER_LOWER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      - name: Compute lowercase repo owner
+        id: owner
+        run: |
+          echo "lower=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Deployment summary
         run: |
