@@ -11,8 +11,6 @@ on:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -106,11 +104,9 @@ EOF
           ls -lh apps/web/dist/ | head -10
 
   docker-publish:
-    if: false
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: test-and-build
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
     permissions:
       contents: read
       packages: write
@@ -128,10 +124,8 @@ EOF
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Compute lowercase repo owner
-        id: owner
-        run: |
-          echo "lower=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+      - name: Set lowercase repo owner
+        run: echo "REPO_OWNER_LOWER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Build and push API image
         uses: docker/build-push-action@v6
@@ -140,8 +134,8 @@ EOF
           file: apps/api/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.owner.outputs.lower }}/build-empire-api:latest
-            ghcr.io/${{ steps.owner.outputs.lower }}/build-empire-api:${{ github.sha }}
+            ghcr.io/${{ env.REPO_OWNER_LOWER }}/build-empire-api:latest
+            ghcr.io/${{ env.REPO_OWNER_LOWER }}/build-empire-api:${{ github.sha }}
 
       - name: Build and push Web image
         uses: docker/build-push-action@v6
@@ -150,8 +144,8 @@ EOF
           file: apps/web/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.owner.outputs.lower }}/build-empire-web:latest
-            ghcr.io/${{ steps.owner.outputs.lower }}/build-empire-web:${{ github.sha }}
+            ghcr.io/${{ env.REPO_OWNER_LOWER }}/build-empire-web:latest
+            ghcr.io/${{ env.REPO_OWNER_LOWER }}/build-empire-web:${{ github.sha }}
 
       - name: Run DB migrations (optional)
         if: ${{ secrets.DATABASE_URL != '' }}
@@ -169,16 +163,12 @@ EOF
           echo "Web Image: ghcr.io/${{ env.REPO_OWNER_LOWER }}/build-empire-web:latest"
 
   deploy-notes:
-    if: false
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: docker-publish
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
     steps:
-      - name: Compute lowercase repo owner
-        id: owner
-        run: |
-          echo "lower=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+      - name: Set lowercase repo owner
+        run: echo "REPO_OWNER_LOWER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Deployment summary
         run: |
