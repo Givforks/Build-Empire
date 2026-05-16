@@ -141,11 +141,7 @@ export default function App() {
   );
   const [aiOutput, setAiOutput] = useState("");
 
-  const [newSuperuserName, _setNewSuperuserName] = useState("Consultant Prime");
-  const [newSuperuserEmail, _setNewSuperuserEmail] = useState("consultant.prime@example.com");
-  const [newSuperuserPassword, _setNewSuperuserPassword] = useState("SuperuserPass123!");
-  const [newSuperuserRank, _setNewSuperuserRank] = useState("Principal Advisor");
-  const [newSuperuserSpecs, _setNewSuperuserSpecs] = useState("AI Strategy, Product Leadership");
+  // Removed unused superuser local state (managed via admin forms)
 
   const [inbox, setInbox] = useState<InboxMessage[]>([]);
   const [chatBody, setChatBody] = useState("Hello, I want to discuss my pending appointment request.");
@@ -292,28 +288,6 @@ export default function App() {
     }
   }
 
-  async function _loadManagedUsers() {
-    if (!token || me?.role !== "admin") return;
-    try {
-      const rows = await api<ManagedUser[]>("/api/admin/users?role=superuser", token);
-      setManagedUsers(rows);
-    } catch (error) {
-      setStatus((error as Error).message);
-    }
-  }
-
-  async function _loadClients() {
-    if (!token || me?.role !== "admin") return;
-    try {
-      const rows = await api<ManagedUser[]>("/api/admin/users?role=client", token);
-      setManagedUsers((prev) => {
-        const superuserRows = prev.filter((item) => item.role === "superuser");
-        return [...rows, ...superuserRows];
-      });
-    } catch (error) {
-      setStatus((error as Error).message);
-    }
-  }
 
   async function loadAdminUsers() {
     if (!token || me?.role !== "admin") return;
@@ -454,26 +428,6 @@ export default function App() {
     }
   }
 
-  async function _createSuperuser() {
-    if (!token || me?.role !== "admin") return;
-    try {
-      await api("/api/admin/superusers", token, {
-        method: "POST",
-        body: JSON.stringify({
-          fullName: newSuperuserName,
-          email: newSuperuserEmail,
-          password: newSuperuserPassword,
-          rank: newSuperuserRank,
-          specializations: newSuperuserSpecs.split(",").map((s) => s.trim()).filter(Boolean),
-          state
-        })
-      });
-      setStatus("Superuser created");
-      await loadAdminUsers();
-    } catch (error) {
-      setStatus((error as Error).message);
-    }
-  }
 
   async function forwardToSuperuser(superuserId: string) {
     if (!token || me?.role !== "admin" || !selectedAppointment) return;
@@ -560,23 +514,7 @@ export default function App() {
     window.URL.revokeObjectURL(url);
   }
 
-  async function _sendSummaryEmail(superuserId: string) {
-    if (!token || me?.role !== "admin" || !selectedAppointment) return;
-    try {
-      await api("/api/admin/appointments/send-summary-email", token, {
-        method: "POST",
-        body: JSON.stringify({
-          appointmentId: selectedAppointment.id,
-          superuserId,
-          message: "Please review the attached meeting brief before confirming."
-        })
-      });
-      setStatus("Summary email dispatched");
-      await loadAppointments();
-    } catch (error) {
-      setStatus((error as Error).message);
-    }
-  }
+  // Unused helper functions removed — admin UI uses `saveSuperuser` and `sendSummaryEmail` endpoints where appropriate.
 
   async function loadInbox() {
     if (!token) return;
