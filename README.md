@@ -67,9 +67,6 @@ npm run dev:web
 
 ## Recent verification (May 16, 2026)
 
-- Branch: `chore/nodemailer-security-fix`
-- Commit: lint + build + test updates; added ESLint/Prettier configs and Postman mock test support.
-- PR: https://github.com/Givforks/Build-Empire/pull/new/chore/nodemailer-security-fix
 
 Quick verification commands (already run on CI/local):
 
@@ -81,7 +78,13 @@ npm run test
 npm run build
 
 # Run Postman MCP integration tests with local mock
-MCP_AUTO_MOCK=1 node FULL-STACK-HEAVY/postman-mcp-test.js
+# Note: `postman-mcp-test.js` is maintained in the separate
+# `FULL-STACK-HEAVY` repository. This repository does not include
+# that script by default. To run Postman MCP integration tests:
+# 1) Clone or restore the `FULL-STACK-HEAVY` repo so it is available
+#    at `FULL-STACK-HEAVY/postman-mcp-test.js`.
+# 2) Run with the mock MCP server:
+#    MCP_AUTO_MOCK=1 node FULL-STACK-HEAVY/postman-mcp-test.js
 ```
 
 If you want me to open the PR description and add a changelog, tell me and I'll add it to the PR.
