@@ -106,7 +106,7 @@ EOF
           ls -lh apps/web/dist/ | head -10
 
   docker-publish:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: false
     needs: test-and-build
     runs-on: ubuntu-latest
     env:
@@ -169,7 +169,7 @@ EOF
           echo "Web Image: ghcr.io/${{ env.REPO_OWNER_LOWER }}/build-empire-web:latest"
 
   deploy-notes:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: false
     needs: docker-publish
     runs-on: ubuntu-latest
     env:
