@@ -2,6 +2,7 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
 COPY apps/api/package*.json ./apps/api/
+ENV NPM_CONFIG_UNSAFE_PERM=true
 RUN npm install --workspace @build-empire/api --include-workspace-root
 
 FROM node:20-alpine AS build
