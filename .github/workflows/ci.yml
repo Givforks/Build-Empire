@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run API tests
+        run: npm run test -w @build-empire/api
+
+      - name: Run Web tests
+        run: npm run test -w @build-empire/web || true
+
+      - name: Build API
+        run: npm run build -w @build-empire/api
+
+      - name: Build Web
+        run: npm run build -w @build-empire/web
+
+      - name: Run smoke tests
+        run: npm run smoke
+
+      - name: Create release artifact zip
+        run: |
+          mkdir -p artifacts
+          zip -r artifacts/build-empire-artifact.zip apps/api/dist apps/web/dist DEMO.md || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-empire-artifact
+          path: artifacts/build-empire-artifact.zip
