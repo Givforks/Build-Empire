@@ -7,6 +7,7 @@ Complete these steps before going live, during deployment, and after launch.
 ## Pre-Deployment (Local Validation)
 
 ### Code Quality
+
 - [ ] Run `npm test` - all tests pass
 - [ ] Run `npm run build` - builds without errors
 - [ ] Run `npm run lint` - no linting errors (if applicable)
@@ -14,6 +15,7 @@ Complete these steps before going live, during deployment, and after launch.
 - [ ] All dependencies are pinned to exact versions in package.json
 
 ### Environment & Secrets
+
 - [ ] Run `npm run bootstrap:prod` - generates all secrets and certs
 - [ ] Verify `.env` file is NOT committed to git
 - [ ] Verify `secrets/` directory is in `.gitignore`
@@ -23,6 +25,7 @@ Complete these steps before going live, during deployment, and after launch.
 - [ ] SMTP_PASSWORD is unique and secure (if using email features)
 
 ### Database
+
 - [ ] PostgreSQL connection string is correct format
 - [ ] Database user has CREATE and ALTER permissions (for migrations)
 - [ ] Test connection works: `npm run docker:up:prod` (includes DB)
@@ -30,12 +33,14 @@ Complete these steps before going live, during deployment, and after launch.
 - [ ] Dummy data loads without errors
 
 ### Docker & Compose
+
 - [ ] `docker compose config` validates without errors
 - [ ] `docker compose build` completes successfully
 - [ ] `npm run docker:up:prod` starts both API and web services
 - [ ] Containers pass health checks (wait 30 seconds, verify no restarts)
 
 ### End-to-End Smoke Test
+
 - [ ] Run `npm run smoke` - all tests pass
   - [ ] API health check returns 200
   - [ ] Client signup works
@@ -50,6 +55,7 @@ Complete these steps before going live, during deployment, and after launch.
   - [ ] Check attachments directory has files
 
 ### Git State
+
 - [ ] Working tree is clean: `git status` shows no uncommitted changes
 - [ ] Latest commit is on main branch
 - [ ] All changes are committed and pushed to GitHub
@@ -60,6 +66,7 @@ Complete these steps before going live, during deployment, and after launch.
 ## Deployment Configuration (Platform-Specific)
 
 ### Environment Variables (All Platforms)
+
 - [ ] `NODE_ENV=production`
 - [ ] `PORT=4010`
 - [ ] `DATABASE_URL` set and tested
@@ -73,6 +80,7 @@ Complete these steps before going live, during deployment, and after launch.
 - [ ] `DATA_DIR=/data` (for persistent file-based storage if needed)
 
 ### TLS/HTTPS
+
 - [ ] SSL certificate is valid (not self-signed for production)
 - [ ] Certificate is from trusted CA (e.g., Let's Encrypt)
 - [ ] Private key is secure and not committed to git
@@ -81,6 +89,7 @@ Complete these steps before going live, during deployment, and after launch.
 - [ ] Certificate renewal automation is in place (certbot for Let's Encrypt)
 
 ### Backup & Recovery
+
 - [ ] Database backups are automated (daily minimum)
 - [ ] Backup location is separate from app servers
 - [ ] Test restore from backup (do this at least once)
@@ -88,6 +97,7 @@ Complete these steps before going live, during deployment, and after launch.
 - [ ] Secrets have documented recovery procedure
 
 ### Render.com Specific
+
 - [ ] PostgreSQL addon created and DATABASE_URL copied
 - [ ] All 10+ environment variables set in dashboard
 - [ ] Build command: `npm run build`
@@ -96,6 +106,7 @@ Complete these steps before going live, during deployment, and after launch.
 - [ ] Deploy on push is enabled
 
 ### Fly.io Specific
+
 - [ ] `flyctl` CLI installed and authenticated
 - [ ] App name set in `fly.toml`
 - [ ] PostgreSQL database created with `flyctl postgres create`
@@ -104,6 +115,7 @@ Complete these steps before going live, during deployment, and after launch.
 - [ ] Deployment succeeds: `flyctl deploy`
 
 ### DigitalOcean Specific
+
 - [ ] `app.yaml` generated and reviewed
 - [ ] GitHub OAuth connected to DigitalOcean
 - [ ] Managed PostgreSQL created (note DATABASE_URL)
@@ -111,6 +123,7 @@ Complete these steps before going live, during deployment, and after launch.
 - [ ] Resource spec (CPU, RAM) appropriate for expected load
 
 ### AWS Specific
+
 - [ ] ECR repository created for images
 - [ ] RDS PostgreSQL database provisioned
 - [ ] Security groups allow:
@@ -127,6 +140,7 @@ Complete these steps before going live, during deployment, and after launch.
 ## Initial Deployment
 
 ### Pre-Launch (1 hour before)
+
 - [ ] Do final git push to main
 - [ ] Verify GitHub Actions CI/CD passed
 - [ ] Refresh environment variables one more time
@@ -134,6 +148,7 @@ Complete these steps before going live, during deployment, and after launch.
 - [ ] Notify team of deployment window
 
 ### Launch Steps
+
 1. [ ] Run deployment script for your platform
 2. [ ] Monitor logs in real-time
 3. [ ] Wait for health check to pass (5-10 minutes typical)
@@ -141,6 +156,7 @@ Complete these steps before going live, during deployment, and after launch.
 5. [ ] Run post-deployment verification below
 
 ### Emergency Contacts
+
 - [ ] Have rollback procedure documented
 - [ ] Have platform support contact info ready
 - [ ] Have on-call engineer designated
@@ -150,6 +166,7 @@ Complete these steps before going live, during deployment, and after launch.
 ## Post-Deployment Verification (Immediately After)
 
 ### Connectivity & Access
+
 - [ ] App URL is reachable in browser
 - [ ] HTTPS works and certificate shows as valid
 - [ ] Health endpoint responds: `curl https://your-app/health`
@@ -157,6 +174,7 @@ Complete these steps before going live, during deployment, and after launch.
 - [ ] Frontend loads without errors (check browser console)
 
 ### Core Workflow
+
 - [ ] Client signup succeeds
 - [ ] Client login works and persists session
 - [ ] Admin login works (GivenchiCodes / Givenchi1@@@@@)
@@ -167,29 +185,34 @@ Complete these steps before going live, during deployment, and after launch.
 - [ ] Client sees updated status
 
 ### Data Persistence
+
 - [ ] Create appointment → refresh page → appointment still there
 - [ ] Send chat message → refresh → message still there
 - [ ] Restart API container → data persists
 
 ### Real-time Features
+
 - [ ] Socket.IO connection established (check browser console)
 - [ ] Chat messages send and receive in real-time
 - [ ] Multiple tabs sync (open two browser windows)
 - [ ] Offline messages queue and send when reconnected
 
 ### Email (if configured)
+
 - [ ] SMTP settings are correct
 - [ ] Test email sends without errors
 - [ ] Email delivers to inbox (not spam)
 - [ ] Email contains appointment summary and attachments
 
 ### Logging
+
 - [ ] Logs accessible in platform dashboard
 - [ ] No ERROR or WARNING logs flooding the output
 - [ ] Request logs show healthy traffic patterns
 - [ ] Database queries complete in <100ms typical
 
 ### Performance
+
 - [ ] Page load time < 3 seconds
 - [ ] API response time < 500ms
 - [ ] No 5xx errors in logs
@@ -197,6 +220,7 @@ Complete these steps before going live, during deployment, and after launch.
 - [ ] Memory usage stable (not growing)
 
 ### Security
+
 - [ ] HTTPS is enforced (no mixed content warnings)
 - [ ] Security headers present:
   - [ ] `Strict-Transport-Security` (HSTS)
@@ -212,6 +236,7 @@ Complete these steps before going live, during deployment, and after launch.
 ## Post-Deployment (First 24 Hours)
 
 ### Monitoring & Observability
+
 - [ ] Set up error tracking (e.g., Sentry)
 - [ ] Set up performance monitoring (e.g., DataDog)
 - [ ] Set up log aggregation (platform logs or external)
@@ -223,6 +248,7 @@ Complete these steps before going live, during deployment, and after launch.
   - [ ] Disk usage > 80%
 
 ### User Testing
+
 - [ ] Have 3-5 test users complete full workflows
 - [ ] Collect feedback on performance and UX
 - [ ] Monitor error logs for issues
@@ -230,18 +256,21 @@ Complete these steps before going live, during deployment, and after launch.
 - [ ] Deploy fixes via normal deployment process
 
 ### Data Verification
+
 - [ ] Spot-check database for data integrity
 - [ ] Verify no duplicate or corrupted records
 - [ ] Check backup completed successfully
 - [ ] Verify backup can be restored (test restore)
 
 ### Traffic & Load
+
 - [ ] Monitor CPU/memory under real load
 - [ ] No spike in error rates
 - [ ] Database query performance acceptable
 - [ ] No cascading failures or timeout chains
 
 ### Logs Review
+
 - [ ] Check for any concerning patterns
 - [ ] Verify migrations ran successfully
 - [ ] No warnings about deprecated APIs
@@ -252,17 +281,20 @@ Complete these steps before going live, during deployment, and after launch.
 ## Ongoing Operations
 
 ### Daily
+
 - [ ] Review error logs for anomalies
 - [ ] Check uptime monitoring (should be 99.9%+)
 - [ ] Verify backup ran successfully
 
 ### Weekly
+
 - [ ] Review performance metrics and trends
 - [ ] Check for any security warnings
 - [ ] Update dependencies if critical patches available
 - [ ] Review user feedback channels
 
 ### Monthly
+
 - [ ] Run full smoke test in production
 - [ ] Test disaster recovery (restore from backup)
 - [ ] Review and update documentation
@@ -270,6 +302,7 @@ Complete these steps before going live, during deployment, and after launch.
 - [ ] Review cost trends
 
 ### Quarterly
+
 - [ ] Full security audit
 - [ ] Capacity planning review
 - [ ] Major version dependency updates
@@ -304,6 +337,7 @@ Complete these steps before going live, during deployment, and after launch.
    - [ ] Post-mortem meeting (if critical incident)
 
 ### Rollback Procedures
+
 - [ ] Render: Dashboard → Deployments → Previous → Redeploy
 - [ ] Fly.io: `flyctl releases list` → `flyctl releases rollback <VERSION>`
 - [ ] DigitalOcean: Dashboard → App → Deployments → Previous → Redeploy
@@ -314,15 +348,17 @@ Complete these steps before going live, during deployment, and after launch.
 ## Sign-Off
 
 **Pre-Launch Sign-Off**
-- [ ] Code Review: _________________ Date: _______
-- [ ] QA Testing: _________________ Date: _______
-- [ ] DevOps/Deployment: __________ Date: _______
-- [ ] Product Owner: ______________ Date: _______
+
+- [ ] Code Review: ********\_******** Date: **\_\_\_**
+- [ ] QA Testing: ********\_******** Date: **\_\_\_**
+- [ ] DevOps/Deployment: ****\_\_**** Date: **\_\_\_**
+- [ ] Product Owner: ******\_\_****** Date: **\_\_\_**
 
 **Post-Launch Sign-Off** (24 hours after)
-- [ ] Stability Confirmed: _________ Date: _______
-- [ ] Monitoring Active: __________ Date: _______
-- [ ] No Critical Issues: __________ Date: _______
+
+- [ ] Stability Confirmed: ****\_**** Date: **\_\_\_**
+- [ ] Monitoring Active: ****\_\_**** Date: **\_\_\_**
+- [ ] No Critical Issues: ****\_\_**** Date: **\_\_\_**
 
 ---
 

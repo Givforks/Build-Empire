@@ -3,6 +3,7 @@
 ## 🚀 Overview
 
 Your Build-Empire project has **automated CI/CD** via GitHub Actions and **multi-platform deployment** options. This guide covers:
+
 - CI/CD pipeline flow
 - Production deployment strategies
 - Performance optimization
@@ -14,12 +15,14 @@ Your Build-Empire project has **automated CI/CD** via GitHub Actions and **multi
 ## 📊 CI/CD Pipeline Flow
 
 ### **Stage 1: Test & Build** (`test-and-build` job)
+
 ```
 Triggered: On every push to main + pull requests
 Node Setup (v20) → Dependencies → Tests (3/3) → Build → Docker Validation
 ```
 
 **What happens:**
+
 1. ✅ Checkout code at commit
 2. ✅ Install 334 npm dependencies via `npm ci` (locked versions)
 3. ✅ Run test suite: `npm run test -- --reporter=verbose`
@@ -33,12 +36,14 @@ Node Setup (v20) → Dependencies → Tests (3/3) → Build → Docker Validatio
 **Location:** `.github/workflows/ci-cd.yml`
 
 ### **Stage 2: Docker Publish** (`docker-publish` job)
+
 ```
 Triggered: Only on successful push to main (not on PRs)
 Build multi-platform images → Push to GHCR (GitHub Container Registry)
 ```
 
 **What happens:**
+
 1. Sets up Docker Buildx for cross-platform builds (linux/amd64, linux/arm64)
 2. Logs into GitHub Container Registry (ghcr.io)
 3. Builds and pushes images:
@@ -47,6 +52,7 @@ Build multi-platform images → Push to GHCR (GitHub Container Registry)
    - Automatically tags with `:vX.Y.Z` on version tags
 
 **Requirements:**
+
 - `GITHUB_TOKEN` provided automatically
 - Dockerfile in `apps/api/` and `apps/web/`
 
@@ -55,6 +61,7 @@ Build multi-platform images → Push to GHCR (GitHub Container Registry)
 ## 🎯 Deployment Strategies
 
 ### **Option 1: Docker Compose (Local/Single Server)**
+
 **Best for:** Development, small-scale production, testing
 
 ```bash
@@ -72,12 +79,14 @@ npm run docker:down:prod
 ```
 
 **What it does:**
+
 - Spins up PostgreSQL container
 - Runs API and Web containers
 - Exposes ports: 3000 (API), 5173 (Web)
 - Uses environment variables from `.env.local`
 
 ### **Option 2: Render.com (Simple PaaS)**
+
 **Best for:** Quick deployment, free tier available
 
 ```bash
@@ -85,6 +94,7 @@ npm run deploy:render
 ```
 
 **Setup:**
+
 1. Create account at render.com
 2. Connect GitHub repo
 3. Create services from `render.yaml` config
@@ -93,6 +103,7 @@ npm run deploy:render
 **Costs:** Free tier includes 750 hours/month
 
 ### **Option 3: Fly.io (Global Edge)**
+
 **Best for:** Global audience, low latency
 
 ```bash
@@ -100,6 +111,7 @@ npm run deploy:fly
 ```
 
 **Setup:**
+
 1. Install `fly` CLI
 2. Create account at fly.io
 3. Run: `fly launch` from project root
@@ -108,6 +120,7 @@ npm run deploy:fly
 **Costs:** Pay-as-you-go, starting ~$5-10/month
 
 ### **Option 4: DigitalOcean App Platform**
+
 **Best for:** Developer-friendly, good performance
 
 ```bash
@@ -115,6 +128,7 @@ npm run deploy:digitalocean
 ```
 
 **Setup:**
+
 1. Create account at digitalocean.com
 2. Generate API token
 3. Set `DIGITALOCEAN_TOKEN` environment variable
@@ -123,6 +137,7 @@ npm run deploy:digitalocean
 **Costs:** Starting ~$12/month
 
 ### **Option 5: AWS (EC2 + RDS)**
+
 **Best for:** Enterprise, high traffic, need fine-grained control
 
 ```bash
@@ -130,6 +145,7 @@ npm run deploy:aws
 ```
 
 **Setup:**
+
 1. Install AWS CLI: `aws configure`
 2. Create EC2 instance (Ubuntu 22.04 LTS)
 3. Create RDS PostgreSQL instance
@@ -145,6 +161,7 @@ npm run deploy:aws
 ### Before Deployment
 
 - [ ] **Environment Variables**
+
   ```bash
   # Required in production:
   NODE_ENV=production
@@ -215,10 +232,12 @@ CREATE INDEX idx_attachments_appointment_id ON attachments(appointment_id);
 ### Caching Strategy
 
 Currently implemented:
+
 - ✅ In-memory rate limiting (express-rate-limit)
 - ✅ JWT token caching (verified once per request)
 
 Recommendations for future:
+
 - Add Redis for session caching
 - Implement ETags for static content
 - Cache appointment lists (invalidate on update)
@@ -245,6 +264,7 @@ artillery quick --count 100 --num 1000 https://yourdomain.com/api/health
 ```
 
 **Solution:**
+
 1. Check PostgreSQL is running: `docker ps | grep postgres`
 2. Verify DB_URL in `.env.local` matches running instance
 3. Run migrations: `npm run migrate`
@@ -256,6 +276,7 @@ artillery quick --count 100 --num 1000 https://yourdomain.com/api/health
 ```
 
 **Solution:**
+
 1. Kill existing process: `lsof -i :3000` then `kill -9 <PID>`
 2. Or change port in `docker-compose.yml`
 
@@ -266,6 +287,7 @@ artillery quick --count 100 --num 1000 https://yourdomain.com/api/health
 ```
 
 **Investigate:**
+
 ```bash
 # Check Docker logs
 docker logs <container-id> --tail=100
@@ -280,6 +302,7 @@ docker restart <container-id>
 ### Performance Degradation
 
 **Checklist:**
+
 1. ✅ Check database query times: `EXPLAIN ANALYZE <query>`
 2. ✅ Look for missing indexes (see Performance Optimization section)
 3. ✅ Monitor rate limits: Check `X-RateLimit-*` response headers
@@ -319,24 +342,26 @@ Post-Deployment:
 
 ## 🔑 Key Environment Variables Reference
 
-| Variable | Purpose | Example |
-|----------|---------|---------|
-| `NODE_ENV` | Environment mode | `production` |
-| `DB_URL` | PostgreSQL connection | `postgresql://user:pass@host/db` |
-| `JWT_SECRET` | Token signing key | `<64+ character random>` |
-| `ADMIN_USERNAME` | Admin login user | `GivenchiCodes` |
-| `ADMIN_PASSWORD` | Admin hashed password | `$2a$12$...bcrypt...` |
-| `WEB_ORIGIN` | Allowed CORS origin | `https://yourdomain.com` |
-| `SMTP_HOST` | Email server | `smtp.gmail.com` |
-| `SMTP_USER` | Email sender | `noreply@yourdomain.com` |
-| `SMTP_PASSWORD` | Email password | `<app password>` |
+| Variable         | Purpose               | Example                          |
+| ---------------- | --------------------- | -------------------------------- |
+| `NODE_ENV`       | Environment mode      | `production`                     |
+| `DB_URL`         | PostgreSQL connection | `postgresql://user:pass@host/db` |
+| `JWT_SECRET`     | Token signing key     | `<64+ character random>`         |
+| `ADMIN_USERNAME` | Admin login user      | `GivenchiCodes`                  |
+| `ADMIN_PASSWORD` | Admin hashed password | `$2a$12$...bcrypt...`            |
+| `WEB_ORIGIN`     | Allowed CORS origin   | `https://yourdomain.com`         |
+| `SMTP_HOST`      | Email server          | `smtp.gmail.com`                 |
+| `SMTP_USER`      | Email sender          | `noreply@yourdomain.com`         |
+| `SMTP_PASSWORD`  | Email password        | `<app password>`                 |
 
 Generate secure password:
+
 ```bash
 openssl rand -base64 32
 ```
 
 Generate bcrypt hash:
+
 ```bash
 node -e "console.log(require('bcryptjs').hashSync('password', 10))"
 ```

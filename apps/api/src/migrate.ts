@@ -1,9 +1,9 @@
-import { runMigrations } from "./migrations.js";
+import { runMigrations } from './migrations.js';
 
 runMigrations()
   .then(() => {
     // eslint-disable-next-line no-console
-    console.log("Migrations applied successfully.");
+    console.log('Migrations applied successfully.');
   })
   .catch((error) => {
     // eslint-disable-next-line no-console

@@ -1,5 +1,5 @@
-import fs from "node:fs";
-import PDFDocument from "pdfkit";
+import fs from 'node:fs';
+import PDFDocument from 'pdfkit';
 
 export function createPdfFromText(outputPath: string, title: string, body: string) {
   return new Promise<void>((resolve, reject) => {
@@ -12,7 +12,7 @@ export function createPdfFromText(outputPath: string, title: string, body: strin
     doc.fontSize(12).text(body);
     doc.end();
 
-    stream.on("finish", () => resolve());
-    stream.on("error", (err) => reject(err));
+    stream.on('finish', () => resolve());
+    stream.on('error', (err) => reject(err));
   });
 }

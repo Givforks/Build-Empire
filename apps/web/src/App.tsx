@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { io, Socket } from "socket.io-client";
-import BuildEmpireSection from "./BuildEmpireSection";
+import { useEffect, useMemo, useState } from 'react';
+import { io, Socket } from 'socket.io-client';
+import BuildEmpireSection from './BuildEmpireSection';
 
 type PreferredDate = { date: string; timeSlots: string[] };
 
@@ -51,7 +51,7 @@ function dedupeInboxMessages(messages: InboxMessage[]) {
 
 type Me = {
   id: string;
-  role: "client" | "admin" | "superuser";
+  role: 'client' | 'admin' | 'superuser';
   email?: string;
   username?: string;
   fullName?: string;
@@ -61,7 +61,7 @@ type Me = {
 
 type ManagedUser = {
   id: string;
-  role: "client" | "superuser";
+  role: 'client' | 'superuser';
   email?: string;
   username?: string;
   fullName?: string;
@@ -72,130 +72,144 @@ type ManagedUser = {
   createdAt: string;
 };
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
 
 async function api<T>(path: string, token?: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init?.headers || {})
-    }
+      ...(init?.headers || {}),
+    },
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(body.error || body.details || "Request failed");
+    throw new Error(body.error || body.details || 'Request failed');
   }
   return body as T;
 }
 
 export default function App() {
-  const showEmpireSection = import.meta.env.VITE_SHOW_EMPIRE_SECTION !== "false";
-  const [mode, setMode] = useState<"client" | "admin" | "superuser">("client");
-  const [token, setToken] = useState("");
+  const showEmpireSection = import.meta.env.VITE_SHOW_EMPIRE_SECTION !== 'false';
+  const [mode, setMode] = useState<'client' | 'admin' | 'superuser'>('client');
+  const [token, setToken] = useState('');
   const [me, setMe] = useState<Me | null>(null);
-  const [status, setStatus] = useState("Ready");
+  const [status, setStatus] = useState('Ready');
 
-  const [email, setEmail] = useState("client1@example.com");
-  const [password, setPassword] = useState("SecurePass123!");
-  const [fullName, setFullName] = useState("John Client");
-  const [state, setState] = useState("Lagos");
+  const [email, setEmail] = useState('client1@example.com');
+  const [password, setPassword] = useState('SecurePass123!');
+  const [fullName, setFullName] = useState('John Client');
+  const [state, setState] = useState('Lagos');
 
-  const [adminUsername, setAdminUsername] = useState("GivenchiCodes");
-  const [adminPassword, setAdminPassword] = useState("Givenchi1@@@@@");
+  const [adminUsername, setAdminUsername] = useState('GivenchiCodes');
+  const [adminPassword, setAdminPassword] = useState('Givenchi1@@@@@');
 
-  const [superuserEmail, setSuperuserEmail] = useState("superuser@example.com");
-  const [superuserPassword, setSuperuserPassword] = useState("TempSuper123!");
+  const [superuserEmail, setSuperuserEmail] = useState('superuser@example.com');
+  const [superuserPassword, setSuperuserPassword] = useState('TempSuper123!');
 
-  const [topic, setTopic] = useState("Time is infinite");
-  const [preferredDate, setPreferredDate] = useState("2026-06-15");
-  const [preferredTime, setPreferredTime] = useState("10:00");
+  const [topic, setTopic] = useState('Time is infinite');
+  const [preferredDate, setPreferredDate] = useState('2026-06-15');
+  const [preferredTime, setPreferredTime] = useState('10:00');
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([]);
-  const [adminPanel, setAdminPanel] = useState<"overview" | "clients" | "superusers" | "appointments" | "messages" | "analytics">("overview");
-  const [analytics, setAnalytics] = useState<{ totalUsers?: number; totalAppointments?: number; statusCounts?: Record<string, number>; avgDecisionHours?: number } | null>(null);
-  const [clientDraftId, setClientDraftId] = useState("");
-  const [clientDraftName, setClientDraftName] = useState("");
-  const [clientDraftEmail, setClientDraftEmail] = useState("");
-  const [clientDraftPassword, setClientDraftPassword] = useState("");
-  const [clientDraftState, setClientDraftState] = useState("");
+  const [adminPanel, setAdminPanel] = useState<
+    'overview' | 'clients' | 'superusers' | 'appointments' | 'messages' | 'analytics'
+  >('overview');
+  const [analytics, setAnalytics] = useState<{
+    totalUsers?: number;
+    totalAppointments?: number;
+    statusCounts?: Record<string, number>;
+    avgDecisionHours?: number;
+  } | null>(null);
+  const [clientDraftId, setClientDraftId] = useState('');
+  const [clientDraftName, setClientDraftName] = useState('');
+  const [clientDraftEmail, setClientDraftEmail] = useState('');
+  const [clientDraftPassword, setClientDraftPassword] = useState('');
+  const [clientDraftState, setClientDraftState] = useState('');
   const [clientDraftActive, setClientDraftActive] = useState(true);
-  const [superuserDraftId, setSuperuserDraftId] = useState("");
-  const [superuserDraftName, setSuperuserDraftName] = useState("");
-  const [superuserDraftEmail, setSuperuserDraftEmail] = useState("");
-  const [superuserDraftPassword, setSuperuserDraftPassword] = useState("");
-  const [superuserDraftRank, setSuperuserDraftRank] = useState("");
-  const [superuserDraftSpecs, setSuperuserDraftSpecs] = useState("");
-  const [superuserDraftState, setSuperuserDraftState] = useState("");
+  const [superuserDraftId, setSuperuserDraftId] = useState('');
+  const [superuserDraftName, setSuperuserDraftName] = useState('');
+  const [superuserDraftEmail, setSuperuserDraftEmail] = useState('');
+  const [superuserDraftPassword, setSuperuserDraftPassword] = useState('');
+  const [superuserDraftRank, setSuperuserDraftRank] = useState('');
+  const [superuserDraftSpecs, setSuperuserDraftSpecs] = useState('');
+  const [superuserDraftState, setSuperuserDraftState] = useState('');
   const [superuserDraftActive, setSuperuserDraftActive] = useState(true);
-  const [selectedAppointmentId, setSelectedAppointmentId] = useState("");
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState('');
   const selectedAppointment = useMemo(
     () => appointments.find((a) => a.id === selectedAppointmentId) || null,
     [appointments, selectedAppointmentId]
   );
 
   const [deepseekPrompt, setDeepseekPrompt] = useState(
-    "I want to discuss product-market fit, growth priorities, and execution constraints."
+    'I want to discuss product-market fit, growth priorities, and execution constraints.'
   );
-  const [aiOutput, setAiOutput] = useState("");
+  const [aiOutput, setAiOutput] = useState('');
 
   // Removed unused superuser local state (managed via admin forms)
 
   const [inbox, setInbox] = useState<InboxMessage[]>([]);
-  const [chatBody, setChatBody] = useState("Hello, I want to discuss my pending appointment request.");
+  const [chatBody, setChatBody] = useState(
+    'Hello, I want to discuss my pending appointment request.'
+  );
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [selectedMessageId, setSelectedMessageId] = useState("");
-  const [superuserView, setSuperuserView] = useState<"dashboard" | "messages" | "appointments">("dashboard");
+  const [selectedMessageId, setSelectedMessageId] = useState('');
+  const [superuserView, setSuperuserView] = useState<'dashboard' | 'messages' | 'appointments'>(
+    'dashboard'
+  );
   const isAuthenticated = Boolean(token && me);
 
   const unreadCount = useMemo(() => inbox.filter((m) => !m.readAt).length, [inbox]);
-  const selectedMessage = useMemo(() => inbox.find((m) => m.id === selectedMessageId) || null, [inbox, selectedMessageId]);
+  const selectedMessage = useMemo(
+    () => inbox.find((m) => m.id === selectedMessageId) || null,
+    [inbox, selectedMessageId]
+  );
   const briefHint = selectedAppointment
-    ? selectedAppointment.status === "APPROVED"
-      ? "Approved briefs now generate the full context template and deliver it to both the client and assigned superuser inboxes."
-      : "Before approval, DeepSeek keeps the lightweight meeting brief template and stores the draft in the client inbox."
-    : "Select an appointment to generate a brief.";
+    ? selectedAppointment.status === 'APPROVED'
+      ? 'Approved briefs now generate the full context template and deliver it to both the client and assigned superuser inboxes.'
+      : 'Before approval, DeepSeek keeps the lightweight meeting brief template and stores the draft in the client inbox.'
+    : 'Select an appointment to generate a brief.';
 
   function showDashboardView() {
-    window.location.hash = "dashboard";
+    window.location.hash = 'dashboard';
   }
 
   function logout() {
-    setToken("");
+    setToken('');
     setMe(null);
     setAppointments([]);
     setManagedUsers([]);
     setInbox([]);
     setSocket(null);
-    setStatus("Signed out");
-    setMode("client");
-    window.location.hash = "";
+    setStatus('Signed out');
+    setMode('client');
+    window.location.hash = '';
   }
 
   function resetClientDraft(user?: ManagedUser) {
-    setClientDraftId(user?.id || "");
-    setClientDraftName(user?.fullName || "");
-    setClientDraftEmail(user?.email || "");
-    setClientDraftPassword("");
-    setClientDraftState(user?.state || "");
+    setClientDraftId(user?.id || '');
+    setClientDraftName(user?.fullName || '');
+    setClientDraftEmail(user?.email || '');
+    setClientDraftPassword('');
+    setClientDraftState(user?.state || '');
     setClientDraftActive(user?.isActive ?? true);
   }
 
   function resetSuperuserDraft(user?: ManagedUser) {
-    setSuperuserDraftId(user?.id || "");
-    setSuperuserDraftName(user?.fullName || "");
-    setSuperuserDraftEmail(user?.email || "");
-    setSuperuserDraftPassword("");
-    setSuperuserDraftRank(user?.rank || "");
-    setSuperuserDraftSpecs((user?.specializations || []).join(", "));
-    setSuperuserDraftState(user?.state || "");
+    setSuperuserDraftId(user?.id || '');
+    setSuperuserDraftName(user?.fullName || '');
+    setSuperuserDraftEmail(user?.email || '');
+    setSuperuserDraftPassword('');
+    setSuperuserDraftRank(user?.rank || '');
+    setSuperuserDraftSpecs((user?.specializations || []).join(', '));
+    setSuperuserDraftState(user?.state || '');
     setSuperuserDraftActive(user?.isActive ?? true);
   }
 
   async function fetchMe(authToken: string) {
-    const user = await api<Me>("/api/me", authToken);
+    const user = await api<Me>('/api/me', authToken);
     setMe(user);
     return user;
   }
@@ -207,16 +221,16 @@ export default function App() {
         password,
         fullName,
         state,
-        preferredDates: [{ date: preferredDate, timeSlots: [preferredTime] }]
+        preferredDates: [{ date: preferredDate, timeSlots: [preferredTime] }],
       };
-      const out = await api<{ token: string }>("/api/auth/signup", undefined, {
-        method: "POST",
-        body: JSON.stringify(payload)
+      const out = await api<{ token: string }>('/api/auth/signup', undefined, {
+        method: 'POST',
+        body: JSON.stringify(payload),
       });
       setMe(null);
       setToken(out.token);
       const user = await fetchMe(out.token);
-      setMode("client");
+      setMode('client');
       setStatus(`Signed up as ${user.fullName || user.email}`);
       showDashboardView();
     } catch (error) {
@@ -226,14 +240,14 @@ export default function App() {
 
   async function loginClient() {
     try {
-      const out = await api<{ token: string }>("/api/auth/login", undefined, {
-        method: "POST",
-        body: JSON.stringify({ email, password })
+      const out = await api<{ token: string }>('/api/auth/login', undefined, {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
       });
       setMe(null);
       setToken(out.token);
       const user = await fetchMe(out.token);
-      setMode("client");
+      setMode('client');
       setStatus(`Client login successful (${user.email})`);
       showDashboardView();
     } catch (error) {
@@ -243,14 +257,14 @@ export default function App() {
 
   async function loginAdmin() {
     try {
-      const out = await api<{ token: string }>("/api/auth/admin-login", undefined, {
-        method: "POST",
-        body: JSON.stringify({ username: adminUsername, password: adminPassword })
+      const out = await api<{ token: string }>('/api/auth/admin-login', undefined, {
+        method: 'POST',
+        body: JSON.stringify({ username: adminUsername, password: adminPassword }),
       });
       setMe(null);
       setToken(out.token);
       const user = await fetchMe(out.token);
-      setMode("admin");
+      setMode('admin');
       setStatus(`Admin login successful (${user.username})`);
       showDashboardView();
     } catch (error) {
@@ -260,14 +274,14 @@ export default function App() {
 
   async function loginSuperuser() {
     try {
-      const out = await api<{ token: string }>("/api/auth/superuser-login", undefined, {
-        method: "POST",
-        body: JSON.stringify({ email: superuserEmail, password: superuserPassword })
+      const out = await api<{ token: string }>('/api/auth/superuser-login', undefined, {
+        method: 'POST',
+        body: JSON.stringify({ email: superuserEmail, password: superuserPassword }),
       });
       setMe(null);
       setToken(out.token);
       const user = await fetchMe(out.token);
-      setMode("superuser");
+      setMode('superuser');
       setStatus(`Superuser login successful (${user.email})`);
       showDashboardView();
     } catch (error) {
@@ -278,7 +292,7 @@ export default function App() {
   async function loadAppointments() {
     if (!token) return;
     try {
-      const list = await api<Appointment[]>("/api/appointments", token);
+      const list = await api<Appointment[]>('/api/appointments', token);
       setAppointments(list);
       if (!selectedAppointmentId && list.length > 0) {
         setSelectedAppointmentId(list[0].id);
@@ -288,13 +302,12 @@ export default function App() {
     }
   }
 
-
   async function loadAdminUsers() {
-    if (!token || me?.role !== "admin") return;
+    if (!token || me?.role !== 'admin') return;
     try {
       const [clients, superusers] = await Promise.all([
-        api<ManagedUser[]>("/api/admin/users?role=client", token),
-        api<ManagedUser[]>("/api/admin/users?role=superuser", token)
+        api<ManagedUser[]>('/api/admin/users?role=client', token),
+        api<ManagedUser[]>('/api/admin/users?role=superuser', token),
       ]);
       setManagedUsers([...clients, ...superusers]);
     } catch (error) {
@@ -303,14 +316,14 @@ export default function App() {
   }
 
   async function loadAdminAnalytics() {
-    if (!token || me?.role !== "admin") return;
+    if (!token || me?.role !== 'admin') return;
     try {
       const out = await api<{
         totalUsers: number;
         totalAppointments: number;
         statusCounts: Record<string, number>;
         avgDecisionHours: number;
-      }>("/api/admin/analytics", token);
+      }>('/api/admin/analytics', token);
       setAnalytics(out);
     } catch (error) {
       setStatus((error as Error).message);
@@ -318,15 +331,15 @@ export default function App() {
   }
 
   async function createAppointment() {
-    if (!token || me?.role !== "client") return;
+    if (!token || me?.role !== 'client') return;
     try {
       const payload = {
         topic,
-        preferredDates: [{ date: preferredDate, timeSlots: [preferredTime] }]
+        preferredDates: [{ date: preferredDate, timeSlots: [preferredTime] }],
       };
-      const out = await api<{ id: string }>("/api/appointments", token, {
-        method: "POST",
-        body: JSON.stringify(payload)
+      const out = await api<{ id: string }>('/api/appointments', token, {
+        method: 'POST',
+        body: JSON.stringify(payload),
       });
       setStatus(`Appointment created: ${out.id}`);
       await loadAppointments();
@@ -336,17 +349,17 @@ export default function App() {
   }
 
   async function requestReschedule() {
-    if (!token || me?.role !== "client" || !selectedAppointment) return;
+    if (!token || me?.role !== 'client' || !selectedAppointment) return;
     try {
       const payload = {
         proposedDates: [{ date: preferredDate, timeSlots: [preferredTime] }],
-        reason: "Need a better alignment window"
+        reason: 'Need a better alignment window',
       };
       await api(`/api/appointments/${selectedAppointment.id}/reschedule`, token, {
-        method: "POST",
-        body: JSON.stringify(payload)
+        method: 'POST',
+        body: JSON.stringify(payload),
       });
-      setStatus("Reschedule submitted");
+      setStatus('Reschedule submitted');
       await loadAppointments();
     } catch (error) {
       setStatus((error as Error).message);
@@ -354,27 +367,27 @@ export default function App() {
   }
 
   async function saveClient() {
-    if (!token || me?.role !== "admin") return;
+    if (!token || me?.role !== 'admin') return;
     try {
       const payload = {
         email: clientDraftEmail,
-        password: clientDraftPassword || "ClientPass123!",
+        password: clientDraftPassword || 'ClientPass123!',
         fullName: clientDraftName,
         state: clientDraftState,
-        isActive: clientDraftActive
+        isActive: clientDraftActive,
       };
       if (clientDraftId) {
         await api(`/api/admin/users/${clientDraftId}`, token, {
-          method: "PATCH",
-          body: JSON.stringify(payload)
+          method: 'PATCH',
+          body: JSON.stringify(payload),
         });
-        setStatus("Client updated");
+        setStatus('Client updated');
       } else {
-        await api("/api/admin/users", token, {
-          method: "POST",
-          body: JSON.stringify({ ...payload, role: "client" })
+        await api('/api/admin/users', token, {
+          method: 'POST',
+          body: JSON.stringify({ ...payload, role: 'client' }),
         });
-        setStatus("Client created");
+        setStatus('Client created');
       }
       resetClientDraft();
       await loadAdminUsers();
@@ -384,29 +397,32 @@ export default function App() {
   }
 
   async function saveSuperuser() {
-    if (!token || me?.role !== "admin") return;
+    if (!token || me?.role !== 'admin') return;
     try {
       const payload = {
         email: superuserDraftEmail,
-        password: superuserDraftPassword || "TempSuper123!",
+        password: superuserDraftPassword || 'TempSuper123!',
         fullName: superuserDraftName,
         rank: superuserDraftRank,
-        specializations: superuserDraftSpecs.split(",").map((item) => item.trim()).filter(Boolean),
+        specializations: superuserDraftSpecs
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean),
         state: superuserDraftState,
-        isActive: superuserDraftActive
+        isActive: superuserDraftActive,
       };
       if (superuserDraftId) {
         await api(`/api/admin/users/${superuserDraftId}`, token, {
-          method: "PATCH",
-          body: JSON.stringify(payload)
+          method: 'PATCH',
+          body: JSON.stringify(payload),
         });
-        setStatus("Superuser updated");
+        setStatus('Superuser updated');
       } else {
-        await api("/api/admin/users", token, {
-          method: "POST",
-          body: JSON.stringify({ ...payload, role: "superuser" })
+        await api('/api/admin/users', token, {
+          method: 'POST',
+          body: JSON.stringify({ ...payload, role: 'superuser' }),
         });
-        setStatus("Superuser created");
+        setStatus('Superuser created');
       }
       resetSuperuserDraft();
       await loadAdminUsers();
@@ -416,42 +432,42 @@ export default function App() {
   }
 
   async function removeManagedUser(id: string) {
-    if (!token || me?.role !== "admin") return;
+    if (!token || me?.role !== 'admin') return;
     try {
       await api(`/api/admin/users/${id}`, token, {
-        method: "DELETE"
+        method: 'DELETE',
       });
-      setStatus("User deleted");
+      setStatus('User deleted');
       await loadAdminUsers();
     } catch (error) {
       setStatus((error as Error).message);
     }
   }
 
-
   async function forwardToSuperuser(superuserId: string) {
-    if (!token || me?.role !== "admin" || !selectedAppointment) return;
+    if (!token || me?.role !== 'admin' || !selectedAppointment) return;
     try {
       await api(`/api/admin/appointments/${selectedAppointment.id}/forward`, token, {
-        method: "POST",
-        body: JSON.stringify({ superuserId })
+        method: 'POST',
+        body: JSON.stringify({ superuserId }),
       });
-      setStatus("Appointment forwarded to superuser");
+      setStatus('Appointment forwarded to superuser');
       await loadAppointments();
     } catch (error) {
       setStatus((error as Error).message);
     }
   }
 
-  async function decideAppointment(decision: "APPROVED" | "REJECTED") {
-    if (!token || me?.role !== "admin" || !selectedAppointment) return;
+  async function decideAppointment(decision: 'APPROVED' | 'REJECTED') {
+    if (!token || me?.role !== 'admin' || !selectedAppointment) return;
     try {
       await api(`/api/admin/appointments/${selectedAppointment.id}/decision`, token, {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify({
           decision,
-          adminDecidedDateTime: decision === "APPROVED" ? `${preferredDate}T${preferredTime}:00Z` : undefined
-        })
+          adminDecidedDateTime:
+            decision === 'APPROVED' ? `${preferredDate}T${preferredTime}:00Z` : undefined,
+        }),
       });
       setStatus(`Appointment ${decision.toLowerCase()}`);
       await loadAppointments();
@@ -461,13 +477,15 @@ export default function App() {
   }
 
   async function respondAsSuperuser(accepted: boolean) {
-    if (!token || me?.role !== "superuser" || !selectedAppointment) return;
+    if (!token || me?.role !== 'superuser' || !selectedAppointment) return;
     try {
       await api(`/api/superuser/appointments/${selectedAppointment.id}/respond`, token, {
-        method: "POST",
-        body: JSON.stringify({ accepted })
+        method: 'POST',
+        body: JSON.stringify({ accepted }),
       });
-      setStatus(accepted ? "Superuser accepted the appointment" : "Superuser rejected the appointment");
+      setStatus(
+        accepted ? 'Superuser accepted the appointment' : 'Superuser rejected the appointment'
+      );
       await loadAppointments();
     } catch (error) {
       setStatus((error as Error).message);
@@ -475,14 +493,22 @@ export default function App() {
   }
 
   async function generateDeepseekSummary() {
-    if (!token || me?.role !== "client" || !selectedAppointment) return;
+    if (!token || me?.role !== 'client' || !selectedAppointment) return;
     try {
-      const out = await api<{ content: string; phase: "pre-approval" | "post-approval" }>("/api/ai/deepseek", token, {
-        method: "POST",
-        body: JSON.stringify({ appointmentId: selectedAppointment.id, prompt: deepseekPrompt })
-      });
+      const out = await api<{ content: string; phase: 'pre-approval' | 'post-approval' }>(
+        '/api/ai/deepseek',
+        token,
+        {
+          method: 'POST',
+          body: JSON.stringify({ appointmentId: selectedAppointment.id, prompt: deepseekPrompt }),
+        }
+      );
       setAiOutput(out.content);
-      setStatus(out.phase === "post-approval" ? "Approved brief delivered to client and superuser inboxes" : "Draft README.md and PDF generated for the client inbox");
+      setStatus(
+        out.phase === 'post-approval'
+          ? 'Approved brief delivered to client and superuser inboxes'
+          : 'Draft README.md and PDF generated for the client inbox'
+      );
       await loadAppointments();
     } catch (error) {
       setStatus((error as Error).message);
@@ -494,18 +520,18 @@ export default function App() {
 
     const res = await fetch(`${API_BASE}/api/attachments/${appointmentId}/${attachmentId}`, {
       headers: {
-        Authorization: `Bearer ${token}`
-      }
+        Authorization: `Bearer ${token}`,
+      },
     });
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      throw new Error(body.error || "Failed to download attachment");
+      throw new Error(body.error || 'Failed to download attachment');
     }
 
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.href = url;
     link.download = fileName;
     document.body.appendChild(link);
@@ -519,7 +545,7 @@ export default function App() {
   async function loadInbox() {
     if (!token) return;
     try {
-      const out = await api<{ unreadCount: number; messages: InboxMessage[] }>("/api/inbox", token);
+      const out = await api<{ unreadCount: number; messages: InboxMessage[] }>('/api/inbox', token);
       setInbox(dedupeInboxMessages(out.messages));
     } catch (error) {
       setStatus((error as Error).message);
@@ -529,32 +555,44 @@ export default function App() {
   async function sendChat() {
     if (!token || !me) return;
     try {
-      if (me.role === "client") {
+      if (me.role === 'client') {
         const adminId = selectedAppointment?.adminId || appointments[0]?.adminId;
-        if (!adminId) throw new Error("No admin target available yet");
-        await api("/api/chat/send", token, {
-          method: "POST",
-          body: JSON.stringify({ toUserId: adminId, body: chatBody, appointmentId: selectedAppointment?.id })
+        if (!adminId) throw new Error('No admin target available yet');
+        await api('/api/chat/send', token, {
+          method: 'POST',
+          body: JSON.stringify({
+            toUserId: adminId,
+            body: chatBody,
+            appointmentId: selectedAppointment?.id,
+          }),
         });
       }
-      if (me.role === "admin") {
+      if (me.role === 'admin') {
         const clientId = selectedAppointment?.clientId;
-        if (!clientId) throw new Error("Select an appointment first");
-        await api("/api/chat/send", token, {
-          method: "POST",
-          body: JSON.stringify({ toUserId: clientId, body: chatBody, appointmentId: selectedAppointment?.id })
+        if (!clientId) throw new Error('Select an appointment first');
+        await api('/api/chat/send', token, {
+          method: 'POST',
+          body: JSON.stringify({
+            toUserId: clientId,
+            body: chatBody,
+            appointmentId: selectedAppointment?.id,
+          }),
         });
       }
-      if (me.role === "superuser") {
+      if (me.role === 'superuser') {
         const clientId = selectedAppointment?.clientId;
-        if (!clientId) throw new Error("Select an appointment first");
-        await api("/api/chat/send", token, {
-          method: "POST",
-          body: JSON.stringify({ toUserId: clientId, body: chatBody, appointmentId: selectedAppointment?.id })
+        if (!clientId) throw new Error('Select an appointment first');
+        await api('/api/chat/send', token, {
+          method: 'POST',
+          body: JSON.stringify({
+            toUserId: clientId,
+            body: chatBody,
+            appointmentId: selectedAppointment?.id,
+          }),
         });
       }
-      setChatBody("");
-      setStatus("Message sent");
+      setChatBody('');
+      setStatus('Message sent');
       await loadInbox();
     } catch (error) {
       setStatus((error as Error).message);
@@ -572,29 +610,29 @@ export default function App() {
         );
         // Call server endpoint
         await api(`/api/chat/${messageId}/read`, token, {
-          method: "POST",
-          body: JSON.stringify({})
+          method: 'POST',
+          body: JSON.stringify({}),
         });
       }
     } catch (error) {
-      console.error("Error marking message as read:", error);
+      console.error('Error marking message as read:', error);
     }
   }
 
   useEffect(() => {
     if (!token || !me) return;
 
-    const s = io(API_BASE, { transports: ["websocket"] });
-    s.on("connect", () => {
-      s.emit("auth:bind", me.id);
+    const s = io(API_BASE, { transports: ['websocket'] });
+    s.on('connect', () => {
+      s.emit('auth:bind', me.id);
     });
 
-    s.on("chat:message", (msg: InboxMessage) => {
+    s.on('chat:message', (msg: InboxMessage) => {
       setInbox((prev) => dedupeInboxMessages([msg, ...prev]));
     });
 
-    s.on("chat:delivery", () => {
-      setStatus("Chat message delivered");
+    s.on('chat:delivery', () => {
+      setStatus('Chat message delivered');
     });
 
     setSocket(s);
@@ -610,13 +648,13 @@ export default function App() {
   }, [token]);
 
   useEffect(() => {
-    if (!token || me?.role !== "admin") return;
+    if (!token || me?.role !== 'admin') return;
     void loadAdminUsers();
   }, [token, me]);
 
   useEffect(() => {
     if (!socket || !me) return;
-    socket.emit("auth:bind", me.id);
+    socket.emit('auth:bind', me.id);
   }, [socket, me]);
 
   return (
@@ -626,19 +664,33 @@ export default function App() {
           <span className="eyebrow">Build-Empire</span>
           <h1>Production control for clients, admins, and superusers.</h1>
           <p>
-            Purple navy glass UI, role-aware workflows, and a management surface built for fast iteration and future
-            expansion.
+            Purple navy glass UI, role-aware workflows, and a management surface built for fast
+            iteration and future expansion.
           </p>
           {!isAuthenticated ? (
             <div className="mode-tabs">
-              <button className={mode === "client" ? "active" : ""} onClick={() => setMode("client")}>Client</button>
-              <button className={mode === "admin" ? "active" : ""} onClick={() => setMode("admin")}>Admin</button>
-              <button className={mode === "superuser" ? "active" : ""} onClick={() => setMode("superuser")}>Superuser</button>
+              <button
+                className={mode === 'client' ? 'active' : ''}
+                onClick={() => setMode('client')}
+              >
+                Client
+              </button>
+              <button className={mode === 'admin' ? 'active' : ''} onClick={() => setMode('admin')}>
+                Admin
+              </button>
+              <button
+                className={mode === 'superuser' ? 'active' : ''}
+                onClick={() => setMode('superuser')}
+              >
+                Superuser
+              </button>
             </div>
           ) : (
             <div className="hero-actions">
               <span className="pill">{me?.role}</span>
-              <button className="ghost" onClick={logout}>Logout</button>
+              <button className="ghost" onClick={logout}>
+                Logout
+              </button>
             </div>
           )}
         </div>
@@ -658,30 +710,54 @@ export default function App() {
         </div>
       </header>
 
-      {!isAuthenticated && mode === "client" && (
+      {!isAuthenticated && mode === 'client' && (
         <section className="card auth-card">
           <h2>Client access</h2>
-          <p className="muted">New clients can sign up here and jump straight into the dashboard.</p>
+          <p className="muted">
+            New clients can sign up here and jump straight into the dashboard.
+          </p>
           <div className="grid">
-            <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" />
+            <input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Full name"
+            />
             <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
-            <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" type="password" />
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              type="password"
+            />
             <input value={state} onChange={(e) => setState(e.target.value)} placeholder="State" />
           </div>
           <div className="row">
             <button onClick={signupClient}>Sign up</button>
-            <button className="ghost" onClick={loginClient}>Login</button>
+            <button className="ghost" onClick={loginClient}>
+              Login
+            </button>
           </div>
         </section>
       )}
 
-      {!isAuthenticated && mode === "admin" && (
+      {!isAuthenticated && mode === 'admin' && (
         <section className="card auth-card">
           <h2>Admin access</h2>
-          <p className="muted">Admin controls create, update, and remove clients and superusers from one console.</p>
+          <p className="muted">
+            Admin controls create, update, and remove clients and superusers from one console.
+          </p>
           <div className="grid">
-            <input value={adminUsername} onChange={(e) => setAdminUsername(e.target.value)} placeholder="Admin username" />
-            <input value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} placeholder="Admin password" type="password" />
+            <input
+              value={adminUsername}
+              onChange={(e) => setAdminUsername(e.target.value)}
+              placeholder="Admin username"
+            />
+            <input
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              placeholder="Admin password"
+              type="password"
+            />
           </div>
           <div className="row">
             <button onClick={loginAdmin}>Admin login</button>
@@ -689,13 +765,24 @@ export default function App() {
         </section>
       )}
 
-      {!isAuthenticated && mode === "superuser" && (
+      {!isAuthenticated && mode === 'superuser' && (
         <section className="card auth-card">
           <h2>Superuser login</h2>
-          <p className="muted">Superusers sign in only. Admins manage their accounts from the dashboard.</p>
+          <p className="muted">
+            Superusers sign in only. Admins manage their accounts from the dashboard.
+          </p>
           <div className="grid">
-            <input value={superuserEmail} onChange={(e) => setSuperuserEmail(e.target.value)} placeholder="Superuser email" />
-            <input value={superuserPassword} onChange={(e) => setSuperuserPassword(e.target.value)} placeholder="Password" type="password" />
+            <input
+              value={superuserEmail}
+              onChange={(e) => setSuperuserEmail(e.target.value)}
+              placeholder="Superuser email"
+            />
+            <input
+              value={superuserPassword}
+              onChange={(e) => setSuperuserPassword(e.target.value)}
+              placeholder="Password"
+              type="password"
+            />
           </div>
           <div className="row">
             <button onClick={loginSuperuser}>Superuser login</button>
@@ -709,9 +796,19 @@ export default function App() {
         <>
           <section className="card hero-summary" id="dashboard">
             <div>
-              <h2>{me?.role === "admin" ? "Admin Console" : me?.role === "superuser" ? "Superuser Console" : "Client Dashboard"}</h2>
+              <h2>
+                {me?.role === 'admin'
+                  ? 'Admin Console'
+                  : me?.role === 'superuser'
+                    ? 'Superuser Console'
+                    : 'Client Dashboard'}
+              </h2>
               <p>
-                Signed in as {me?.role === "admin" ? `admin ${me.username || me.email}` : me?.fullName || me?.email}.
+                Signed in as{' '}
+                {me?.role === 'admin'
+                  ? `admin ${me.username || me.email}`
+                  : me?.fullName || me?.email}
+                .
               </p>
             </div>
             <div className="summary-grid">
@@ -730,26 +827,43 @@ export default function App() {
             </div>
           </section>
 
-          {me?.role === "admin" && (
+          {me?.role === 'admin' && (
             <section className="card tabbed-shell">
               <div className="panel-tabs">
-                {(["overview", "clients", "superusers", "appointments", "messages", "analytics"] as const).map((tab) => (
-                  <button key={tab} className={adminPanel === tab ? "active" : ""} onClick={() => setAdminPanel(tab)}>
+                {(
+                  [
+                    'overview',
+                    'clients',
+                    'superusers',
+                    'appointments',
+                    'messages',
+                    'analytics',
+                  ] as const
+                ).map((tab) => (
+                  <button
+                    key={tab}
+                    className={adminPanel === tab ? 'active' : ''}
+                    onClick={() => setAdminPanel(tab)}
+                  >
                     {tab}
                   </button>
                 ))}
               </div>
 
-              {adminPanel === "overview" && (
+              {adminPanel === 'overview' && (
                 <div className="stack">
                   <div className="glass-grid">
                     <article className="glass-tile">
                       <span>Clients</span>
-                      <strong>{managedUsers.filter((item) => item.role === "client").length}</strong>
+                      <strong>
+                        {managedUsers.filter((item) => item.role === 'client').length}
+                      </strong>
                     </article>
                     <article className="glass-tile">
                       <span>Superusers</span>
-                      <strong>{managedUsers.filter((item) => item.role === "superuser").length}</strong>
+                      <strong>
+                        {managedUsers.filter((item) => item.role === 'superuser').length}
+                      </strong>
                     </article>
                     <article className="glass-tile">
                       <span>Total users</span>
@@ -757,19 +871,25 @@ export default function App() {
                     </article>
                     <article className="glass-tile">
                       <span>Selected</span>
-                      <strong>{selectedAppointment?.topic || "None"}</strong>
+                      <strong>{selectedAppointment?.topic || 'None'}</strong>
                     </article>
                   </div>
                   <div className="row">
-                    <button onClick={() => setAdminPanel("clients")}>Manage clients</button>
-                    <button className="ghost" onClick={() => setAdminPanel("superusers")}>Manage superusers</button>
-                    <button className="ghost" onClick={loadAdminUsers}>Refresh users</button>
-                    <button className="ghost" onClick={loadAdminAnalytics}>Load analytics</button>
+                    <button onClick={() => setAdminPanel('clients')}>Manage clients</button>
+                    <button className="ghost" onClick={() => setAdminPanel('superusers')}>
+                      Manage superusers
+                    </button>
+                    <button className="ghost" onClick={loadAdminUsers}>
+                      Refresh users
+                    </button>
+                    <button className="ghost" onClick={loadAdminAnalytics}>
+                      Load analytics
+                    </button>
                   </div>
                 </div>
               )}
 
-              {adminPanel === "analytics" && (
+              {adminPanel === 'analytics' && (
                 <div className="stack">
                   <h2>Analytics</h2>
                   <div className="grid">
@@ -779,16 +899,24 @@ export default function App() {
                     </div>
                     <div className="metric">
                       <span>Avg decision time (hrs)</span>
-                      <strong>{analytics?.avgDecisionHours ? analytics.avgDecisionHours.toFixed(1) : "N/A"}</strong>
+                      <strong>
+                        {analytics?.avgDecisionHours
+                          ? analytics.avgDecisionHours.toFixed(1)
+                          : 'N/A'}
+                      </strong>
                     </div>
                     <div className="metric">
                       <span>Statuses</span>
                       <div>
-                        {analytics?.statusCounts
-                          ? Object.entries(analytics.statusCounts).map(([k, v]) => (
-                              <div key={k}>{k}: {v}</div>
-                            ))
-                          : <div>No status data</div>}
+                        {analytics?.statusCounts ? (
+                          Object.entries(analytics.statusCounts).map(([k, v]) => (
+                            <div key={k}>
+                              {k}: {v}
+                            </div>
+                          ))
+                        ) : (
+                          <div>No status data</div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -798,75 +926,161 @@ export default function App() {
                 </div>
               )}
 
-              {adminPanel === "clients" && (
+              {adminPanel === 'clients' && (
                 <div className="stack">
                   <h2>Client CRUD</h2>
                   <div className="grid">
-                    <input value={clientDraftName} onChange={(e) => setClientDraftName(e.target.value)} placeholder="Full name" />
-                    <input value={clientDraftEmail} onChange={(e) => setClientDraftEmail(e.target.value)} placeholder="Email" />
-                    <input value={clientDraftPassword} onChange={(e) => setClientDraftPassword(e.target.value)} placeholder="Password" type="password" />
-                    <input value={clientDraftState} onChange={(e) => setClientDraftState(e.target.value)} placeholder="State" />
-                    <label className="toggle-row"><input type="checkbox" checked={clientDraftActive} onChange={(e) => setClientDraftActive(e.target.checked)} /> Active</label>
+                    <input
+                      value={clientDraftName}
+                      onChange={(e) => setClientDraftName(e.target.value)}
+                      placeholder="Full name"
+                    />
+                    <input
+                      value={clientDraftEmail}
+                      onChange={(e) => setClientDraftEmail(e.target.value)}
+                      placeholder="Email"
+                    />
+                    <input
+                      value={clientDraftPassword}
+                      onChange={(e) => setClientDraftPassword(e.target.value)}
+                      placeholder="Password"
+                      type="password"
+                    />
+                    <input
+                      value={clientDraftState}
+                      onChange={(e) => setClientDraftState(e.target.value)}
+                      placeholder="State"
+                    />
+                    <label className="toggle-row">
+                      <input
+                        type="checkbox"
+                        checked={clientDraftActive}
+                        onChange={(e) => setClientDraftActive(e.target.checked)}
+                      />{' '}
+                      Active
+                    </label>
                   </div>
                   <div className="row">
-                    <button onClick={saveClient}>{clientDraftId ? "Update client" : "Create client"}</button>
-                    <button className="ghost" onClick={() => resetClientDraft()}>Clear</button>
+                    <button onClick={saveClient}>
+                      {clientDraftId ? 'Update client' : 'Create client'}
+                    </button>
+                    <button className="ghost" onClick={() => resetClientDraft()}>
+                      Clear
+                    </button>
                   </div>
                   <div className="user-list">
-                    {managedUsers.filter((item) => item.role === "client").map((client) => (
-                      <article className="user-card" key={client.id}>
-                        <div>
-                          <strong>{client.fullName}</strong>
-                          <p>{client.email}</p>
-                          <small>{client.state || "No state"} · {client.isActive ? "Active" : "Disabled"}</small>
-                        </div>
-                        <div className="row compact">
-                          <button className="ghost" onClick={() => resetClientDraft(client)}>Edit</button>
-                          <button className="danger" onClick={() => removeManagedUser(client.id)}>Delete</button>
-                        </div>
-                      </article>
-                    ))}
+                    {managedUsers
+                      .filter((item) => item.role === 'client')
+                      .map((client) => (
+                        <article className="user-card" key={client.id}>
+                          <div>
+                            <strong>{client.fullName}</strong>
+                            <p>{client.email}</p>
+                            <small>
+                              {client.state || 'No state'} ·{' '}
+                              {client.isActive ? 'Active' : 'Disabled'}
+                            </small>
+                          </div>
+                          <div className="row compact">
+                            <button className="ghost" onClick={() => resetClientDraft(client)}>
+                              Edit
+                            </button>
+                            <button className="danger" onClick={() => removeManagedUser(client.id)}>
+                              Delete
+                            </button>
+                          </div>
+                        </article>
+                      ))}
                   </div>
                 </div>
               )}
 
-              {adminPanel === "superusers" && (
+              {adminPanel === 'superusers' && (
                 <div className="stack">
                   <h2>Superuser CRUD</h2>
                   <div className="grid">
-                    <input value={superuserDraftName} onChange={(e) => setSuperuserDraftName(e.target.value)} placeholder="Full name" />
-                    <input value={superuserDraftEmail} onChange={(e) => setSuperuserDraftEmail(e.target.value)} placeholder="Email" />
-                    <input value={superuserDraftPassword} onChange={(e) => setSuperuserDraftPassword(e.target.value)} placeholder="Password" type="password" />
-                    <input value={superuserDraftRank} onChange={(e) => setSuperuserDraftRank(e.target.value)} placeholder="Rank" />
-                    <input value={superuserDraftSpecs} onChange={(e) => setSuperuserDraftSpecs(e.target.value)} placeholder="Specializations comma-separated" />
-                    <input value={superuserDraftState} onChange={(e) => setSuperuserDraftState(e.target.value)} placeholder="State" />
-                    <label className="toggle-row"><input type="checkbox" checked={superuserDraftActive} onChange={(e) => setSuperuserDraftActive(e.target.checked)} /> Active</label>
+                    <input
+                      value={superuserDraftName}
+                      onChange={(e) => setSuperuserDraftName(e.target.value)}
+                      placeholder="Full name"
+                    />
+                    <input
+                      value={superuserDraftEmail}
+                      onChange={(e) => setSuperuserDraftEmail(e.target.value)}
+                      placeholder="Email"
+                    />
+                    <input
+                      value={superuserDraftPassword}
+                      onChange={(e) => setSuperuserDraftPassword(e.target.value)}
+                      placeholder="Password"
+                      type="password"
+                    />
+                    <input
+                      value={superuserDraftRank}
+                      onChange={(e) => setSuperuserDraftRank(e.target.value)}
+                      placeholder="Rank"
+                    />
+                    <input
+                      value={superuserDraftSpecs}
+                      onChange={(e) => setSuperuserDraftSpecs(e.target.value)}
+                      placeholder="Specializations comma-separated"
+                    />
+                    <input
+                      value={superuserDraftState}
+                      onChange={(e) => setSuperuserDraftState(e.target.value)}
+                      placeholder="State"
+                    />
+                    <label className="toggle-row">
+                      <input
+                        type="checkbox"
+                        checked={superuserDraftActive}
+                        onChange={(e) => setSuperuserDraftActive(e.target.checked)}
+                      />{' '}
+                      Active
+                    </label>
                   </div>
                   <div className="row">
-                    <button onClick={saveSuperuser}>{superuserDraftId ? "Update superuser" : "Create superuser"}</button>
-                    <button className="ghost" onClick={() => resetSuperuserDraft()}>Clear</button>
+                    <button onClick={saveSuperuser}>
+                      {superuserDraftId ? 'Update superuser' : 'Create superuser'}
+                    </button>
+                    <button className="ghost" onClick={() => resetSuperuserDraft()}>
+                      Clear
+                    </button>
                   </div>
                   <div className="user-list">
-                    {managedUsers.filter((item) => item.role === "superuser").map((superuser) => (
-                      <article className="user-card" key={superuser.id}>
-                        <div>
-                          <strong>{superuser.fullName}</strong>
-                          <p>{superuser.email}</p>
-                          <small>
-                            {superuser.rank || "No rank"} · {(superuser.specializations || []).join(", ") || "No specializations"}
-                          </small>
-                        </div>
-                        <div className="row compact">
-                          <button className="ghost" onClick={() => resetSuperuserDraft(superuser)}>Edit</button>
-                          <button className="danger" onClick={() => removeManagedUser(superuser.id)}>Delete</button>
-                        </div>
-                      </article>
-                    ))}
+                    {managedUsers
+                      .filter((item) => item.role === 'superuser')
+                      .map((superuser) => (
+                        <article className="user-card" key={superuser.id}>
+                          <div>
+                            <strong>{superuser.fullName}</strong>
+                            <p>{superuser.email}</p>
+                            <small>
+                              {superuser.rank || 'No rank'} ·{' '}
+                              {(superuser.specializations || []).join(', ') || 'No specializations'}
+                            </small>
+                          </div>
+                          <div className="row compact">
+                            <button
+                              className="ghost"
+                              onClick={() => resetSuperuserDraft(superuser)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="danger"
+                              onClick={() => removeManagedUser(superuser.id)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </article>
+                      ))}
                   </div>
                 </div>
               )}
 
-              {adminPanel === "appointments" && (
+              {adminPanel === 'appointments' && (
                 <div className="stack">
                   <h2>Appointment operations</h2>
                   <div className="row">
@@ -874,7 +1088,11 @@ export default function App() {
                   </div>
                   <div className="stack">
                     {appointments.map((item) => (
-                      <button key={item.id} className={`appointment-item ${selectedAppointmentId === item.id ? "selected" : ""}`} onClick={() => setSelectedAppointmentId(item.id)}>
+                      <button
+                        key={item.id}
+                        className={`appointment-item ${selectedAppointmentId === item.id ? 'selected' : ''}`}
+                        onClick={() => setSelectedAppointmentId(item.id)}
+                      >
                         <strong>{item.topic}</strong>
                         <span>{item.status}</span>
                         <span>{item.clientId}</span>
@@ -883,51 +1101,87 @@ export default function App() {
                   </div>
                   {selectedAppointment && (
                     <div className="row">
-                      <button onClick={() => decideAppointment("APPROVED")}>Approve</button>
-                      <button className="danger" onClick={() => decideAppointment("REJECTED")}>Reject</button>
-                      {managedUsers.filter((item) => item.role === "superuser").map((superuser) => (
-                        <button key={superuser.id} className="ghost" onClick={() => forwardToSuperuser(superuser.id)}>
-                          Forward to {superuser.fullName}
-                        </button>
-                      ))}
+                      <button onClick={() => decideAppointment('APPROVED')}>Approve</button>
+                      <button className="danger" onClick={() => decideAppointment('REJECTED')}>
+                        Reject
+                      </button>
+                      {managedUsers
+                        .filter((item) => item.role === 'superuser')
+                        .map((superuser) => (
+                          <button
+                            key={superuser.id}
+                            className="ghost"
+                            onClick={() => forwardToSuperuser(superuser.id)}
+                          >
+                            Forward to {superuser.fullName}
+                          </button>
+                        ))}
                     </div>
                   )}
                 </div>
               )}
 
-              {adminPanel === "messages" && (
+              {adminPanel === 'messages' && (
                 <div className="stack">
                   <h2>Messaging</h2>
-                  <textarea value={chatBody} onChange={(e) => setChatBody(e.target.value)} rows={4} placeholder="Type message" />
+                  <textarea
+                    value={chatBody}
+                    onChange={(e) => setChatBody(e.target.value)}
+                    rows={4}
+                    placeholder="Type message"
+                  />
                   <div className="row">
                     <button onClick={sendChat}>Send message</button>
-                    <button className="ghost" onClick={loadInbox}>Refresh inbox</button>
+                    <button className="ghost" onClick={loadInbox}>
+                      Refresh inbox
+                    </button>
                   </div>
                 </div>
               )}
             </section>
           )}
 
-          {me?.role !== "admin" && (
+          {me?.role !== 'admin' && (
             <section className="card">
               <h2>Appointment Control</h2>
               <div className="grid">
-                <input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Appointment topic" />
-                <input value={preferredDate} onChange={(e) => setPreferredDate(e.target.value)} type="date" />
-                <input value={preferredTime} onChange={(e) => setPreferredTime(e.target.value)} type="time" />
+                <input
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="Appointment topic"
+                />
+                <input
+                  value={preferredDate}
+                  onChange={(e) => setPreferredDate(e.target.value)}
+                  type="date"
+                />
+                <input
+                  value={preferredTime}
+                  onChange={(e) => setPreferredTime(e.target.value)}
+                  type="time"
+                />
               </div>
               <div className="row">
-                {me?.role === "client" && <button onClick={createAppointment}>Create request</button>}
-                <button className="ghost" onClick={loadAppointments}>Refresh appointments</button>
-                {me?.role === "client" && selectedAppointment?.status === "PENDING_ADMIN_REVIEW" && (
-                  <button onClick={requestReschedule}>Request reschedule</button>
+                {me?.role === 'client' && (
+                  <button onClick={createAppointment}>Create request</button>
                 )}
-                {me?.role === "superuser" && selectedAppointment && selectedAppointment.superuserId === me.id && (
-                  <>
-                    <button onClick={() => respondAsSuperuser(true)}>Accept</button>
-                    <button className="danger" onClick={() => respondAsSuperuser(false)}>Reject</button>
-                  </>
-                )}
+                <button className="ghost" onClick={loadAppointments}>
+                  Refresh appointments
+                </button>
+                {me?.role === 'client' &&
+                  selectedAppointment?.status === 'PENDING_ADMIN_REVIEW' && (
+                    <button onClick={requestReschedule}>Request reschedule</button>
+                  )}
+                {me?.role === 'superuser' &&
+                  selectedAppointment &&
+                  selectedAppointment.superuserId === me.id && (
+                    <>
+                      <button onClick={() => respondAsSuperuser(true)}>Accept</button>
+                      <button className="danger" onClick={() => respondAsSuperuser(false)}>
+                        Reject
+                      </button>
+                    </>
+                  )}
               </div>
             </section>
           )}
@@ -938,22 +1192,22 @@ export default function App() {
               {appointments.map((item) => (
                 <button
                   key={item.id}
-                  className={`appointment-item ${selectedAppointmentId === item.id ? "selected" : ""}`}
+                  className={`appointment-item ${selectedAppointmentId === item.id ? 'selected' : ''}`}
                   onClick={() => setSelectedAppointmentId(item.id)}
                 >
                   <strong>{item.topic}</strong>
                   <span>{item.status}</span>
                   <span>
-                    {"rank" in (item.superuser || {})
-                      ? `${(item.superuser as SuperuserPublic).rank || "N/A"} | ${((item.superuser as SuperuserPublic).specializations || []).join(", ")}`
-                      : "Superuser hidden"}
+                    {'rank' in (item.superuser || {})
+                      ? `${(item.superuser as SuperuserPublic).rank || 'N/A'} | ${((item.superuser as SuperuserPublic).specializations || []).join(', ')}`
+                      : 'Superuser hidden'}
                   </span>
                 </button>
               ))}
             </div>
           </section>
 
-          {me?.role === "client" && selectedAppointment && (
+          {me?.role === 'client' && selectedAppointment && (
             <section className="card">
               <h2>DeepSeek Dialogue</h2>
               <p className="muted brief-hint">{briefHint}</p>
@@ -966,27 +1220,40 @@ export default function App() {
               <div className="row">
                 <button onClick={generateDeepseekSummary}>Generate README.md + PDF</button>
               </div>
-              <pre className="brief-output">{aiOutput || "No AI output yet."}</pre>
+              <pre className="brief-output">{aiOutput || 'No AI output yet.'}</pre>
             </section>
           )}
 
-          {me?.role === "superuser" && (
+          {me?.role === 'superuser' && (
             <section className="card superuser-dashboard">
               <div className="panel-tabs">
-                <button className={superuserView === "dashboard" ? "active" : ""} onClick={() => setSuperuserView("dashboard")}>Dashboard</button>
-                <button className={superuserView === "messages" ? "active" : ""} onClick={() => setSuperuserView("messages")}>
+                <button
+                  className={superuserView === 'dashboard' ? 'active' : ''}
+                  onClick={() => setSuperuserView('dashboard')}
+                >
+                  Dashboard
+                </button>
+                <button
+                  className={superuserView === 'messages' ? 'active' : ''}
+                  onClick={() => setSuperuserView('messages')}
+                >
                   Messages ({unreadCount} unread)
                 </button>
-                <button className={superuserView === "appointments" ? "active" : ""} onClick={() => setSuperuserView("appointments")}>Appointments</button>
+                <button
+                  className={superuserView === 'appointments' ? 'active' : ''}
+                  onClick={() => setSuperuserView('appointments')}
+                >
+                  Appointments
+                </button>
               </div>
 
-              {superuserView === "dashboard" && (
+              {superuserView === 'dashboard' && (
                 <div className="stack">
-                  <h2>Welcome, {me?.fullName || "Superuser"}</h2>
+                  <h2>Welcome, {me?.fullName || 'Superuser'}</h2>
                   <div className="glass-grid">
                     <article className="glass-tile">
                       <span>Your Rank</span>
-                      <strong>{me?.rank || "N/A"}</strong>
+                      <strong>{me?.rank || 'N/A'}</strong>
                     </article>
                     <article className="glass-tile">
                       <span>Specializations</span>
@@ -994,7 +1261,16 @@ export default function App() {
                     </article>
                     <article className="glass-tile">
                       <span>Active Assignments</span>
-                      <strong>{appointments.filter((a) => a.superuserId === me?.id && a.status !== "APPROVED" && a.status !== "REJECTED").length}</strong>
+                      <strong>
+                        {
+                          appointments.filter(
+                            (a) =>
+                              a.superuserId === me?.id &&
+                              a.status !== 'APPROVED' &&
+                              a.status !== 'REJECTED'
+                          ).length
+                        }
+                      </strong>
                     </article>
                     <article className="glass-tile">
                       <span>Unread Messages</span>
@@ -1003,16 +1279,24 @@ export default function App() {
                   </div>
                   <h3>Quick Actions</h3>
                   <div className="row">
-                    <button onClick={() => setSuperuserView("messages")}>📧 View Messages ({unreadCount})</button>
-                    <button className="ghost" onClick={() => setSuperuserView("appointments")}>📋 Your Assignments</button>
-                    <button className="ghost" onClick={loadInbox}>🔄 Refresh</button>
+                    <button onClick={() => setSuperuserView('messages')}>
+                      📧 View Messages ({unreadCount})
+                    </button>
+                    <button className="ghost" onClick={() => setSuperuserView('appointments')}>
+                      📋 Your Assignments
+                    </button>
+                    <button className="ghost" onClick={loadInbox}>
+                      🔄 Refresh
+                    </button>
                   </div>
                   {me?.specializations && me.specializations.length > 0 && (
                     <div className="info-box">
                       <h4>Your Specializations</h4>
                       <div className="tag-list">
                         {me.specializations.map((spec) => (
-                          <span key={spec} className="tag">{spec}</span>
+                          <span key={spec} className="tag">
+                            {spec}
+                          </span>
                         ))}
                       </div>
                     </div>
@@ -1020,12 +1304,16 @@ export default function App() {
                 </div>
               )}
 
-              {superuserView === "messages" && (
+              {superuserView === 'messages' && (
                 <div className="stack">
                   <h2>Message Inbox</h2>
-                  <p className="muted">Messages sent to you by administrators and clients regarding your appointments</p>
+                  <p className="muted">
+                    Messages sent to you by administrators and clients regarding your appointments
+                  </p>
                   {inbox.length === 0 ? (
-                    <p className="muted" style={{ textAlign: "center", padding: "2rem" }}>No messages yet. Check back later!</p>
+                    <p className="muted" style={{ textAlign: 'center', padding: '2rem' }}>
+                      No messages yet. Check back later!
+                    </p>
                   ) : (
                     <div className="message-container">
                       <div className="message-list">
@@ -1034,7 +1322,7 @@ export default function App() {
                           {inbox.map((msg) => (
                             <button
                               key={msg.id}
-                              className={`message-item ${selectedMessageId === msg.id ? "selected" : ""} ${!msg.readAt ? "unread" : ""}`}
+                              className={`message-item ${selectedMessageId === msg.id ? 'selected' : ''} ${!msg.readAt ? 'unread' : ''}`}
                               onClick={() => {
                                 setSelectedMessageId(msg.id);
                                 if (!msg.readAt) {
@@ -1043,7 +1331,10 @@ export default function App() {
                               }}
                             >
                               <div className="message-preview">
-                                <strong>{msg.body.substring(0, 50)}{msg.body.length > 50 ? "..." : ""}</strong>
+                                <strong>
+                                  {msg.body.substring(0, 50)}
+                                  {msg.body.length > 50 ? '...' : ''}
+                                </strong>
                                 <small>{new Date(msg.createdAt).toLocaleString()}</small>
                               </div>
                               {!msg.readAt && <span className="badge">●</span>}
@@ -1056,27 +1347,46 @@ export default function App() {
                           <h3>Message Details</h3>
                           <div className="message-content">
                             <p className="message-body">{selectedMessage.body}</p>
-                            {selectedMessage.attachments && selectedMessage.attachments.length > 0 && (
-                              <div className="attachment-list">
-                                {selectedMessage.attachments.map((attachment) => (
-                                  <button
-                                    key={attachment.id}
-                                    className="attachment-chip"
-                                    onClick={() => {
-                                      if (!selectedMessage.appointmentId) return;
-                                      void downloadAttachment(selectedMessage.appointmentId, attachment.id, attachment.fileName);
-                                    }}
-                                  >
-                                    {attachment.type.toUpperCase()} · {attachment.fileName}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
+                            {selectedMessage.attachments &&
+                              selectedMessage.attachments.length > 0 && (
+                                <div className="attachment-list">
+                                  {selectedMessage.attachments.map((attachment) => (
+                                    <button
+                                      key={attachment.id}
+                                      className="attachment-chip"
+                                      onClick={() => {
+                                        if (!selectedMessage.appointmentId) return;
+                                        void downloadAttachment(
+                                          selectedMessage.appointmentId,
+                                          attachment.id,
+                                          attachment.fileName
+                                        );
+                                      }}
+                                    >
+                                      {attachment.type.toUpperCase()} · {attachment.fileName}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                             <div className="message-meta">
-                              <small><strong>From:</strong> {selectedMessage.fromUserId}</small>
-                              <small><strong>Sent:</strong> {new Date(selectedMessage.createdAt).toLocaleString()}</small>
-                              {selectedMessage.readAt && <small><strong>Read:</strong> {new Date(selectedMessage.readAt).toLocaleString()}</small>}
-                              {selectedMessage.appointmentId && <small><strong>Regarding:</strong> {selectedMessage.appointmentId}</small>}
+                              <small>
+                                <strong>From:</strong> {selectedMessage.fromUserId}
+                              </small>
+                              <small>
+                                <strong>Sent:</strong>{' '}
+                                {new Date(selectedMessage.createdAt).toLocaleString()}
+                              </small>
+                              {selectedMessage.readAt && (
+                                <small>
+                                  <strong>Read:</strong>{' '}
+                                  {new Date(selectedMessage.readAt).toLocaleString()}
+                                </small>
+                              )}
+                              {selectedMessage.appointmentId && (
+                                <small>
+                                  <strong>Regarding:</strong> {selectedMessage.appointmentId}
+                                </small>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1084,17 +1394,21 @@ export default function App() {
                     </div>
                   )}
                   <div className="row">
-                    <button className="ghost" onClick={loadInbox}>Refresh Inbox</button>
+                    <button className="ghost" onClick={loadInbox}>
+                      Refresh Inbox
+                    </button>
                   </div>
                 </div>
               )}
 
-              {superuserView === "appointments" && (
+              {superuserView === 'appointments' && (
                 <div className="stack">
                   <h2>Your Appointments</h2>
                   <p className="muted">Appointments assigned to you for approval or rejection</p>
                   {appointments.filter((a) => a.superuserId === me?.id).length === 0 ? (
-                    <p className="muted" style={{ textAlign: "center", padding: "2rem" }}>No appointments assigned to you yet</p>
+                    <p className="muted" style={{ textAlign: 'center', padding: '2rem' }}>
+                      No appointments assigned to you yet
+                    </p>
                   ) : (
                     <div className="appointment-grid">
                       {appointments
@@ -1103,22 +1417,41 @@ export default function App() {
                           <div key={apt.id} className="appointment-card">
                             <h4>{apt.topic}</h4>
                             <div className="appointment-details">
-                              <p><strong>Status:</strong> <span className={`status status-${apt.status.toLowerCase()}`}>{apt.status}</span></p>
-                              <p><strong>Client ID:</strong> {apt.clientId}</p>
+                              <p>
+                                <strong>Status:</strong>{' '}
+                                <span className={`status status-${apt.status.toLowerCase()}`}>
+                                  {apt.status}
+                                </span>
+                              </p>
+                              <p>
+                                <strong>Client ID:</strong> {apt.clientId}
+                              </p>
                               {apt.preferredDates && apt.preferredDates.length > 0 && (
-                                <p><strong>Preferred:</strong> {apt.preferredDates[0].date} {apt.preferredDates[0].timeSlots.join(", ")}</p>
+                                <p>
+                                  <strong>Preferred:</strong> {apt.preferredDates[0].date}{' '}
+                                  {apt.preferredDates[0].timeSlots.join(', ')}
+                                </p>
                               )}
                             </div>
-                            {apt.status === "FORWARDED_TO_SUPERUSER" && (
+                            {apt.status === 'FORWARDED_TO_SUPERUSER' && (
                               <div className="action-buttons">
-                                <button onClick={() => {
-                                  setSelectedAppointmentId(apt.id);
-                                  void respondAsSuperuser(true);
-                                }}>✓ Accept</button>
-                                <button className="danger" onClick={() => {
-                                  setSelectedAppointmentId(apt.id);
-                                  void respondAsSuperuser(false);
-                                }}>✗ Reject</button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedAppointmentId(apt.id);
+                                    void respondAsSuperuser(true);
+                                  }}
+                                >
+                                  ✓ Accept
+                                </button>
+                                <button
+                                  className="danger"
+                                  onClick={() => {
+                                    setSelectedAppointmentId(apt.id);
+                                    void respondAsSuperuser(false);
+                                  }}
+                                >
+                                  ✗ Reject
+                                </button>
                               </div>
                             )}
                           </div>
@@ -1126,7 +1459,9 @@ export default function App() {
                     </div>
                   )}
                   <div className="row">
-                    <button className="ghost" onClick={loadAppointments}>Refresh Appointments</button>
+                    <button className="ghost" onClick={loadAppointments}>
+                      Refresh Appointments
+                    </button>
                   </div>
                 </div>
               )}
@@ -1135,10 +1470,17 @@ export default function App() {
 
           <section className="card">
             <h2>Realtime Chat + Offline Inbox</h2>
-            <textarea value={chatBody} onChange={(e) => setChatBody(e.target.value)} rows={3} placeholder="Type message" />
+            <textarea
+              value={chatBody}
+              onChange={(e) => setChatBody(e.target.value)}
+              rows={3}
+              placeholder="Type message"
+            />
             <div className="row">
               <button onClick={sendChat}>Send message</button>
-              <button className="ghost" onClick={loadInbox}>Refresh inbox</button>
+              <button className="ghost" onClick={loadInbox}>
+                Refresh inbox
+              </button>
             </div>
             <div className="stack inbox">
               {inbox.map((m) => (
@@ -1152,7 +1494,11 @@ export default function App() {
                           className="attachment-chip"
                           onClick={() => {
                             if (!m.appointmentId) return;
-                            void downloadAttachment(m.appointmentId, attachment.id, attachment.fileName);
+                            void downloadAttachment(
+                              m.appointmentId,
+                              attachment.id,
+                              attachment.fileName
+                            );
                           }}
                         >
                           {attachment.fileName}
@@ -1161,7 +1507,7 @@ export default function App() {
                     </div>
                   )}
                   <small>
-                    {m.createdAt} | from: {m.fromUserId} | {m.readAt ? "read" : "unread"}
+                    {m.createdAt} | from: {m.fromUserId} | {m.readAt ? 'read' : 'unread'}
                   </small>
                 </div>
               ))}

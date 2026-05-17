@@ -1,11 +1,11 @@
-export type Role = "client" | "admin" | "superuser";
+export type Role = 'client' | 'admin' | 'superuser';
 
 export type AppointmentStatus =
-  | "PENDING_ADMIN_REVIEW"
-  | "FORWARDED_TO_SUPERUSER"
-  | "SUPERUSER_RESPONDED"
-  | "APPROVED"
-  | "REJECTED";
+  | 'PENDING_ADMIN_REVIEW'
+  | 'FORWARDED_TO_SUPERUSER'
+  | 'SUPERUSER_RESPONDED'
+  | 'APPROVED'
+  | 'REJECTED';
 
 export interface PreferredDate {
   date: string;
@@ -28,7 +28,7 @@ export interface User {
 
 export interface Attachment {
   id: string;
-  type: "readme" | "pdf" | "other";
+  type: 'readme' | 'pdf' | 'other';
   fileName: string;
   filePath: string;
   createdAt: string;
@@ -44,7 +44,7 @@ export interface Appointment {
   adminDecidedDateTime?: string;
   superuserId?: string;
   attachments: Attachment[];
-  summaryEmailStatus?: "PENDING" | "SENT" | "FAILED";
+  summaryEmailStatus?: 'PENDING' | 'SENT' | 'FAILED';
   createdAt: string;
   updatedAt: string;
 }
@@ -55,7 +55,7 @@ export interface RescheduleRequest {
   clientId: string;
   proposedDates: PreferredDate[];
   reason?: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: string;
 }
 
@@ -87,7 +87,7 @@ export interface EmailDispatch {
   appointmentId: string;
   to: string;
   subject: string;
-  status: "PENDING" | "SENT" | "FAILED";
+  status: 'PENDING' | 'SENT' | 'FAILED';
   errorMessage?: string;
   createdAt: string;
   sentAt?: string;

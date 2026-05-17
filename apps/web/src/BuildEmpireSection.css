@@ -3,7 +3,7 @@
   margin: 2rem auto;
   max-width: 900px;
   text-align: center;
-  font-family: "Segoe UI", Arial, sans-serif;
+  font-family: 'Segoe UI', Arial, sans-serif;
 }
 
 .empire-toggle {
@@ -27,7 +27,7 @@
   color: #e0e1dd;
   padding: 2rem;
   border-radius: 12px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
 }
 
 .empire-title {
@@ -74,12 +74,14 @@
   border-radius: 10px;
   padding: 1.2rem;
   flex: 1 1 250px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .value-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
 }
 
 .value-card h3 {

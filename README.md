@@ -9,14 +9,14 @@ Production-ready MVP for a mediated appointment workflow where admin controls ap
 - Admin can create and manage superusers
 - Client sees only superuser rank and specializations
 - Appointment lifecycle states:
-	- `PENDING_ADMIN_REVIEW`
-	- `FORWARDED_TO_SUPERUSER`
-	- `SUPERUSER_RESPONDED`
-	- `APPROVED`
-	- `REJECTED`
+  - `PENDING_ADMIN_REVIEW`
+  - `FORWARDED_TO_SUPERUSER`
+  - `SUPERUSER_RESPONDED`
+  - `APPROVED`
+  - `REJECTED`
 - DeepSeek-style dialogue endpoint generates:
-	- `README.md` meeting brief
-	- PDF attachment
+  - `README.md` meeting brief
+  - PDF attachment
 - Admin can email summary attachments to superuser with status tracking
 - Realtime chat with Socket.IO + offline persistence + delivery/read timestamps
 - Pending-only reschedule requests
@@ -49,8 +49,8 @@ npm run migrate -w @build-empire/api
 ```
 
 - Optional auto-run on server start:
-	- set `DATABASE_URL`
-	- set `AUTO_RUN_MIGRATIONS=true`
+  - set `DATABASE_URL`
+  - set `AUTO_RUN_MIGRATIONS=true`
 
 ## Local Development
 
@@ -66,7 +66,6 @@ npm run dev:web
 ```
 
 ## Recent verification (May 16, 2026)
-
 
 Quick verification commands (already run on CI/local):
 
@@ -157,6 +156,7 @@ npm run smoke
 ```
 
 **What bootstrap:prod does:**
+
 - Creates `.env` from `.env.production.example`
 - Generates cryptographically random JWT_SECRET
 - Creates admin password file (`Givenchi1@@@@@`)
@@ -166,24 +166,28 @@ npm run smoke
 ### Deploy to Cloud (Pick One)
 
 **Render.com** (Easiest, recommended for beginners)
+
 ```bash
 npm run deploy:render
 # Auto-deploys on git push via GitHub integration
 ```
 
 **Fly.io** (Global edge deployment)
+
 ```bash
 npm run deploy:fly
 # Deploys to 6+ regions globally
 ```
 
 **DigitalOcean** (Simple, predictable $5-50/month pricing)
+
 ```bash
 npm run deploy:digitalocean
 # YAML-based infrastructure
 ```
 
 **AWS** (Maximum control, auto-scaling)
+
 ```bash
 npm run deploy:aws
 # ECS + RDS + ALB + CloudFront
@@ -192,6 +196,7 @@ npm run deploy:aws
 ### Full Deployment Guide
 
 See [**DEPLOYMENT.md**](./DEPLOYMENT.md) for:
+
 - Step-by-step guides for each platform
 - Environment variable checklists
 - Post-deployment verification
@@ -201,6 +206,7 @@ See [**DEPLOYMENT.md**](./DEPLOYMENT.md) for:
 ### Pre-Deployment Checklist
 
 See [**PRODUCTION_CHECKLIST.md**](./PRODUCTION_CHECKLIST.md) for:
+
 - Pre-deployment validation steps
 - Platform-specific setup
 - Post-deployment verification
@@ -236,16 +242,19 @@ docker compose down -v
 ## API Surface (MVP)
 
 ### Auth
+
 - `POST /api/auth/signup`
 - `POST /api/auth/login`
 - `POST /api/auth/admin-login`
 - `GET /api/me`
 
 ### Superusers (Admin)
+
 - `GET /api/admin/superusers`
 - `POST /api/admin/superusers`
 
 ### Appointments
+
 - `POST /api/appointments` (client)
 - `GET /api/appointments`
 - `POST /api/appointments/:id/reschedule` (client, pending only)
@@ -254,10 +263,12 @@ docker compose down -v
 - `POST /api/admin/appointments/:id/decision` (admin)
 
 ### AI + Attachments + Email
+
 - `POST /api/ai/deepseek` (client)
 - `POST /api/admin/appointments/send-summary-email` (admin)
 
 ### Chat / Inbox
+
 - `GET /api/inbox`
 - `GET /api/chat/thread/:peerUserId`
 - `POST /api/chat/send`

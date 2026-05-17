@@ -3,6 +3,7 @@
 ## 🎯 Current Features (v0.1.0)
 
 **Completed:**
+
 - ✅ Client signup/login with preferred dates
 - ✅ Admin dashboard with CRUD for clients/superusers
 - ✅ Superuser login with dedicated auth path
@@ -30,7 +31,7 @@
 // Email triggers:
 
 // When: Client books appointment
-Event.on("appointment.created", async (apt) => {
+Event.on('appointment.created', async (apt) => {
   await sendEmail(apt.clientId, {
     subject: `Appointment Confirmation: ${apt.topic}`,
     html: `
@@ -38,12 +39,12 @@ Event.on("appointment.created", async (apt) => {
       <p>Topic: ${apt.topic}</p>
       <p>Status: Pending superuser review</p>
       <p>We'll notify you once a superuser accepts.</p>
-    `
+    `,
   });
 });
 
 // When: Superuser accepts appointment
-Event.on("appointment.approved", async (apt) => {
+Event.on('appointment.approved', async (apt) => {
   await sendEmail(apt.clientId, {
     subject: `Appointment Approved! 🎉`,
     html: `
@@ -51,40 +52,41 @@ Event.on("appointment.approved", async (apt) => {
       <p>Superuser ${apt.superuser.fullName} has approved your appointment.</p>
       <p>Scheduled date: ${apt.appointmentDate}</p>
       <p><a href="${config.WEB_ORIGIN}">View details</a></p>
-    `
+    `,
   });
-  
+
   // Also notify superuser
   await sendEmail(apt.superuserId, {
     subject: `Appointment Accepted: ${apt.topic}`,
-    html: `<p>You've accepted appointment with ${apt.client.fullName}</p>`
+    html: `<p>You've accepted appointment with ${apt.client.fullName}</p>`,
   });
 });
 
 // When: Appointment rejected
-Event.on("appointment.rejected", async (apt) => {
+Event.on('appointment.rejected', async (apt) => {
   await sendEmail(apt.clientId, {
     subject: `Appointment Decision: Changes Requested`,
     html: `
       <p>Your appointment request needs adjustment.</p>
       <p>Please review the feedback and reschedule.</p>
-    `
+    `,
   });
 });
 
 // When: Client sent a message
-Event.on("message.sent", async (msg) => {
+Event.on('message.sent', async (msg) => {
   const recipient = database.findUserById(msg.toUserId);
   if (recipient?.emailNotifications) {
     await sendEmail(recipient.email, {
       subject: `New message from ${msg.senderName}`,
-      html: `<p>${msg.body.substring(0, 100)}...</p><a href="${config.WEB_ORIGIN}">Reply</a>`
+      html: `<p>${msg.body.substring(0, 100)}...</p><a href="${config.WEB_ORIGIN}">Reply</a>`,
     });
   }
 });
 ```
 
 **Implementation Steps:**
+
 1. Add `User.emailNotifications` boolean field
 2. Create `EmailQueue` table to track sent emails
 3. Add event emitter to appointment workflow
@@ -99,13 +101,13 @@ Event.on("message.sent", async (msg) => {
 ```typescript
 // Runs every hour
 async function sendAppointmentReminders() {
-  const appointments = database.getAppointmentsInNext(24, "hours");
-  
+  const appointments = database.getAppointmentsInNext(24, 'hours');
+
   for (const apt of appointments) {
-    if (apt.reminderSent) continue;  // Skip if already sent
-    
+    if (apt.reminderSent) continue; // Skip if already sent
+
     const hoursUntil = getHoursUntil(apt.appointmentDate);
-    
+
     if (hoursUntil <= 24 && hoursUntil > 23) {
       // Send 24-hour reminder
       await sendEmail(apt.clientId, {
@@ -115,17 +117,17 @@ async function sendAppointmentReminders() {
           <p>Your appointment with ${apt.superuser.fullName} is coming up:</p>
           <p><strong>${format(apt.appointmentDate, "MMM dd, yyyy 'at' h:mm aa")}</strong></p>
           <p><a href="${config.WEB_ORIGIN}/#appointments/${apt.id}">View Details</a></p>
-        `
+        `,
       });
-      
+
       database.markReminderSent(apt.id);
     }
-    
+
     if (hoursUntil <= 1) {
       // Send 1-hour reminder
       await sendEmail(apt.clientId, {
         subject: `⏰ Appointment starting in 1 hour!`,
-        html: `<p>Join now at ${config.WEB_ORIGIN}</p>`
+        html: `<p>Join now at ${config.WEB_ORIGIN}</p>`,
       });
     }
   }
@@ -174,13 +176,13 @@ POST /api/admin/users/import
 // Pre-defined responses for common scenarios:
 interface MessageTemplate {
   id: string;
-  name: string;  // "Schedule Confirmation", "Need More Info", etc.
+  name: string; // "Schedule Confirmation", "Need More Info", etc.
   body: string;
-  tags: string[];  // {{client_name}}, {{date}}, etc.
+  tags: string[]; // {{client_name}}, {{date}}, etc.
 }
 
 // Use in UI:
-// When superuser responds to appointment, 
+// When superuser responds to appointment,
 // offer: "Use template" → pick template → auto-fill with values
 ```
 
@@ -193,7 +195,7 @@ interface MessageTemplate {
 ```typescript
 // Frontend feature: Click to enable notifications
 if ('Notification' in window) {
-  Notification.requestPermission().then(perm => {
+  Notification.requestPermission().then((perm) => {
     if (perm === 'granted') {
       // Show real-time desktop notifications for:
       // - New appointment assigned
@@ -206,7 +208,7 @@ if ('Notification' in window) {
 // When message received:
 new Notification('New message from John', {
   body: 'Check your dashboard',
-  icon: '/notification-icon.png'
+  icon: '/notification-icon.png',
 });
 ```
 
@@ -218,7 +220,7 @@ interface NotificationPreferences {
   emailOnAppointmentApproved: boolean;
   emailOnRescheduleRequest: boolean;
   pushNotificationsEnabled: boolean;
-  quietHours: { start: "18:00", end: "09:00" };  // No notifications
+  quietHours: { start: '18:00'; end: '09:00' }; // No notifications
 }
 
 // User settings page
@@ -271,7 +273,7 @@ Event.on("appointment.booked", async (apt) => {
       currency: "usd",
       description: `Appointment with ${apt.superuser.fullName}`
     });
-    
+
     apt.paymentIntentId = payment.id;
     database.save(apt);
   }
@@ -370,7 +372,7 @@ GET /api/search?q=john&type=users&role=client
 
 ```typescript
 // Current: Works on mobile but not optimized
-// New: 
+// New:
 - Mobile-first CSS
 - Touch-friendly buttons
 - Optimized forms
@@ -392,21 +394,22 @@ GET /api/search?q=john&type=users&role=client
 
 ## ✅ Priority Matrix
 
-| Feature | Impact | Effort | Priority |
-|---------|--------|--------|----------|
-| Email Notifications | ⭐⭐⭐⭐⭐ | ⭐⭐ | 🔴 **DO NEXT** |
-| Reminders | ⭐⭐⭐⭐ | ⭐⭐ | 🔴 **DO NEXT** |
-| Analytics Dashboard | ⭐⭐⭐⭐ | ⭐⭐⭐ | 🟡 Soon |
-| Modal Editors | ⭐⭐⭐ | ⭐ | 🟡 Soon |
-| 2FA Security | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | 🟡 Soon |
-| Payment Integration | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | 🟣 Later |
-| PWA Features | ⭐⭐⭐ | ⭐⭐⭐ | 🟣 Later |
+| Feature             | Impact     | Effort   | Priority       |
+| ------------------- | ---------- | -------- | -------------- |
+| Email Notifications | ⭐⭐⭐⭐⭐ | ⭐⭐     | 🔴 **DO NEXT** |
+| Reminders           | ⭐⭐⭐⭐   | ⭐⭐     | 🔴 **DO NEXT** |
+| Analytics Dashboard | ⭐⭐⭐⭐   | ⭐⭐⭐   | 🟡 Soon        |
+| Modal Editors       | ⭐⭐⭐     | ⭐       | 🟡 Soon        |
+| 2FA Security        | ⭐⭐⭐⭐   | ⭐⭐⭐⭐ | 🟡 Soon        |
+| Payment Integration | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | 🟣 Later       |
+| PWA Features        | ⭐⭐⭐     | ⭐⭐⭐   | 🟣 Later       |
 
 ---
 
 ## 🚦 Next Steps
 
 ### Week 1: Email & Reminders
+
 - [ ] Add `User.emailNotifications` field to DB
 - [ ] Implement email event triggers
 - [ ] Add appointment reminder cron job
@@ -414,16 +417,19 @@ GET /api/search?q=john&type=users&role=client
 - [ ] Update frontend with notification preferences
 
 ### Week 2: Admin Analytics
+
 - [ ] Create analytics API endpoints
 - [ ] Add Analytics tab to admin console
 - [ ] Display charts (ApexCharts or Recharts)
 
 ### Week 3: Security Hardening
+
 - [ ] Add Helmet.js for security headers
 - [ ] Implement stronger password policy
 - [ ] Set up audit logging
 
 ### Week 4+: Optional Features
+
 - [ ] Modal editors for CRUD
 - [ ] Advanced search
 - [ ] 2FA implementation

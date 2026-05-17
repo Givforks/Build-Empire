@@ -1,9 +1,16 @@
-import fs from "node:fs";
-import path from "node:path";
-import { v4 as uuid } from "uuid";
-import bcrypt from "bcryptjs";
-import { config } from "./config.js";
-import type { Appointment, ChatMessage, Database, EmailDispatch, RescheduleRequest, User } from "./types.js";
+import fs from 'node:fs';
+import path from 'node:path';
+import { v4 as uuid } from 'uuid';
+import bcrypt from 'bcryptjs';
+import { config } from './config.js';
+import type {
+  Appointment,
+  ChatMessage,
+  Database,
+  EmailDispatch,
+  RescheduleRequest,
+  User,
+} from './types.js';
 
 const { hashSync } = bcrypt;
 
@@ -15,14 +22,14 @@ const emptyDb = (): Database => ({
   reschedules: [],
   chatMessages: [],
   aiOutputs: [],
-  emailDispatches: []
+  emailDispatches: [],
 });
 
 function ensurePaths() {
   if (!fs.existsSync(config.DATA_DIR_ABS)) {
     fs.mkdirSync(config.DATA_DIR_ABS, { recursive: true });
   }
-  const attachmentsDir = path.join(config.DATA_DIR_ABS, "attachments");
+  const attachmentsDir = path.join(config.DATA_DIR_ABS, 'attachments');
   if (!fs.existsSync(attachmentsDir)) {
     fs.mkdirSync(attachmentsDir, { recursive: true });
   }
@@ -32,17 +39,17 @@ function readDbFile(): Database {
   ensurePaths();
   if (!fs.existsSync(config.DB_FILE_ABS)) {
     const initial = emptyDb();
-    fs.writeFileSync(config.DB_FILE_ABS, JSON.stringify(initial, null, 2), "utf-8");
+    fs.writeFileSync(config.DB_FILE_ABS, JSON.stringify(initial, null, 2), 'utf-8');
     return initial;
   }
-  const raw = fs.readFileSync(config.DB_FILE_ABS, "utf-8");
+  const raw = fs.readFileSync(config.DB_FILE_ABS, 'utf-8');
   if (!raw.trim()) return emptyDb();
   return JSON.parse(raw) as Database;
 }
 
 function writeDbFile(db: Database) {
   ensurePaths();
-  fs.writeFileSync(config.DB_FILE_ABS, JSON.stringify(db, null, 2), "utf-8");
+  fs.writeFileSync(config.DB_FILE_ABS, JSON.stringify(db, null, 2), 'utf-8');
 }
 
 let db = readDbFile();
@@ -65,25 +72,25 @@ export const database = {
     return db.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
   },
   findAdminByUsername(username: string) {
-    return db.users.find((u) => u.role === "admin" && u.username === username);
+    return db.users.find((u) => u.role === 'admin' && u.username === username);
   },
   findFirstAdmin() {
-    return db.users.find((u) => u.role === "admin");
+    return db.users.find((u) => u.role === 'admin');
   },
   findSuperusers() {
-    return db.users.filter((u) => u.role === "superuser");
+    return db.users.filter((u) => u.role === 'superuser');
   },
-  listUsers(role?: User["role"]) {
+  listUsers(role?: User['role']) {
     return role ? db.users.filter((u) => u.role === role) : db.users;
   },
   findUserById(id: string) {
     return db.users.find((u) => u.id === id);
   },
-  createUser(payload: Omit<User, "id" | "createdAt">) {
+  createUser(payload: Omit<User, 'id' | 'createdAt'>) {
     const user: User = {
       ...payload,
       id: uuid(),
-      createdAt: now()
+      createdAt: now(),
     };
     db.users.push(user);
     writeDbFile(db);
@@ -94,7 +101,7 @@ export const database = {
     if (idx < 0) return undefined;
     db.users[idx] = {
       ...db.users[idx],
-      ...update
+      ...update,
     };
     writeDbFile(db);
     return db.users[idx];
@@ -106,12 +113,12 @@ export const database = {
     writeDbFile(db);
     return removed;
   },
-  createAppointment(payload: Omit<Appointment, "id" | "createdAt" | "updatedAt">) {
+  createAppointment(payload: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>) {
     const appointment: Appointment = {
       ...payload,
       id: uuid(),
       createdAt: now(),
-      updatedAt: now()
+      updatedAt: now(),
     };
     db.appointments.push(appointment);
     writeDbFile(db);
@@ -123,7 +130,7 @@ export const database = {
     db.appointments[idx] = {
       ...db.appointments[idx],
       ...update,
-      updatedAt: now()
+      updatedAt: now(),
     };
     writeDbFile(db);
     return db.appointments[idx];
@@ -131,27 +138,27 @@ export const database = {
   findAppointmentById(id: string) {
     return db.appointments.find((a) => a.id === id);
   },
-  listAppointmentsForRole(userId: string, role: User["role"]) {
-    if (role === "admin") return db.appointments;
-    if (role === "superuser") return db.appointments.filter((a) => a.superuserId === userId);
+  listAppointmentsForRole(userId: string, role: User['role']) {
+    if (role === 'admin') return db.appointments;
+    if (role === 'superuser') return db.appointments.filter((a) => a.superuserId === userId);
     return db.appointments.filter((a) => a.clientId === userId);
   },
-  createReschedule(payload: Omit<RescheduleRequest, "id" | "createdAt">) {
+  createReschedule(payload: Omit<RescheduleRequest, 'id' | 'createdAt'>) {
     const item: RescheduleRequest = {
       ...payload,
       id: uuid(),
-      createdAt: now()
+      createdAt: now(),
     };
     db.reschedules.push(item);
     writeDbFile(db);
     return item;
   },
-  addChatMessage(payload: Omit<ChatMessage, "id" | "createdAt">) {
+  addChatMessage(payload: Omit<ChatMessage, 'id' | 'createdAt'>) {
     const message: ChatMessage = {
       ...payload,
       attachments: payload.attachments || [],
       id: uuid(),
-      createdAt: now()
+      createdAt: now(),
     };
     db.chatMessages.push(message);
     writeDbFile(db);
@@ -188,17 +195,17 @@ export const database = {
       )
       .sort((a, b) => (a.createdAt > b.createdAt ? 1 : -1));
   },
-  addAIOutput(entry: Database["aiOutputs"][number]) {
+  addAIOutput(entry: Database['aiOutputs'][number]) {
     db.aiOutputs.push(entry);
     writeDbFile(db);
     return entry;
   },
-  addEmailDispatch(payload: Omit<EmailDispatch, "id" | "createdAt" | "status">) {
+  addEmailDispatch(payload: Omit<EmailDispatch, 'id' | 'createdAt' | 'status'>) {
     const item: EmailDispatch = {
       ...payload,
       id: uuid(),
       createdAt: now(),
-      status: "PENDING"
+      status: 'PENDING',
     };
     db.emailDispatches.push(item);
     writeDbFile(db);
@@ -210,36 +217,36 @@ export const database = {
     Object.assign(item, update);
     writeDbFile(db);
     return item;
-  }
+  },
 };
 
 export function initializeSeedData() {
-  const hasAdmin = db.users.some((u) => u.role === "admin");
+  const hasAdmin = db.users.some((u) => u.role === 'admin');
   if (!hasAdmin) {
     db.users.push({
       id: uuid(),
-      role: "admin",
+      role: 'admin',
       username: config.ADMIN_USERNAME,
       passwordHash: hashSync(config.ADMIN_PASSWORD, 10),
-      fullName: "Primary Admin",
+      fullName: 'Primary Admin',
       isActive: true,
-      createdAt: now()
+      createdAt: now(),
     });
   }
 
-  const hasSuperuser = db.users.some((u) => u.role === "superuser");
+  const hasSuperuser = db.users.some((u) => u.role === 'superuser');
   if (!hasSuperuser) {
     db.users.push({
       id: uuid(),
-      role: "superuser",
-      email: "superuser@example.com",
-      passwordHash: hashSync("TempSuper123!", 10),
-      fullName: "Senior Meeting Specialist",
-      rank: "Senior Consultant",
-      state: "Lagos",
-      specializations: ["AI Strategy", "Product Leadership"],
+      role: 'superuser',
+      email: 'superuser@example.com',
+      passwordHash: hashSync('TempSuper123!', 10),
+      fullName: 'Senior Meeting Specialist',
+      rank: 'Senior Consultant',
+      state: 'Lagos',
+      specializations: ['AI Strategy', 'Product Leadership'],
       isActive: true,
-      createdAt: now()
+      createdAt: now(),
     });
   }
 
@@ -248,5 +255,5 @@ export function initializeSeedData() {
 
 export function attachmentsDir() {
   ensurePaths();
-  return path.join(config.DATA_DIR_ABS, "attachments");
+  return path.join(config.DATA_DIR_ABS, 'attachments');
 }

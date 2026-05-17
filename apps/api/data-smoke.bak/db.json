@@ -1,0 +1,109 @@
+{
+  "users": [
+    {
+      "id": "ece30a44-3f71-49df-80a2-016272101d06",
+      "role": "admin",
+      "username": "GivenchiCodes",
+      "passwordHash": "$2b$10$H74zZIDFrOTRnNMbMU1xvePf4d0Mn/UoOM5zyT5U.L77cmJTSCr.m",
+      "fullName": "Primary Admin",
+      "isActive": true,
+      "createdAt": "2026-05-16T13:19:10.985Z"
+    },
+    {
+      "id": "69006ae8-164c-47f0-91da-5e085ccb0528",
+      "role": "superuser",
+      "email": "superuser@example.com",
+      "passwordHash": "$2b$10$Oc/E2s1tD02O0sqCRSDFu.pjNmm/HQ4xxg4sUjt1HG94KLKUrXWjG",
+      "fullName": "Senior Meeting Specialist",
+      "rank": "Senior Consultant",
+      "state": "Lagos",
+      "specializations": ["AI Strategy", "Product Leadership"],
+      "isActive": true,
+      "createdAt": "2026-05-16T13:19:11.058Z"
+    },
+    {
+      "role": "client",
+      "email": "smoke-client@example.com",
+      "fullName": "Smoke Client",
+      "passwordHash": "$2b$10$lpCkisW2k1oPs2lmFaHi/uyCwDwz136Q5by0iwZTHUsmRsIqIx4m6",
+      "isActive": true,
+      "id": "5bd74ce8-47f4-4158-8d23-471bd63fd1de",
+      "createdAt": "2026-05-16T13:19:11.375Z"
+    }
+  ],
+  "appointments": [
+    {
+      "clientId": "5bd74ce8-47f4-4158-8d23-471bd63fd1de",
+      "adminId": "ece30a44-3f71-49df-80a2-016272101d06",
+      "status": "PENDING_ADMIN_REVIEW",
+      "topic": "Smoke test appointment for product strategy validation.",
+      "preferredDates": [
+        {
+          "date": "2026-08-11",
+          "timeSlots": ["11:00"]
+        }
+      ],
+      "superuserId": "69006ae8-164c-47f0-91da-5e085ccb0528",
+      "attachments": [
+        {
+          "id": "6936ff7a-6b61-4389-b489-b33819252724",
+          "type": "readme",
+          "fileName": "appointment-8ab884a8-bcc7-41e9-a984-70a96823dd76-draft-3546f6aa-3620-4696-be17-a617751f7db5.README.md",
+          "filePath": "apps/api/data-smoke/attachments/appointment-8ab884a8-bcc7-41e9-a984-70a96823dd76-draft-3546f6aa-3620-4696-be17-a617751f7db5.README.md",
+          "createdAt": "2026-05-16T13:19:11.611Z"
+        },
+        {
+          "id": "ff0d3194-aa12-41e8-aa8e-4ba9edf7f3a5",
+          "type": "pdf",
+          "fileName": "appointment-8ab884a8-bcc7-41e9-a984-70a96823dd76-draft-3546f6aa-3620-4696-be17-a617751f7db5.summary.pdf",
+          "filePath": "apps/api/data-smoke/attachments/appointment-8ab884a8-bcc7-41e9-a984-70a96823dd76-draft-3546f6aa-3620-4696-be17-a617751f7db5.summary.pdf",
+          "createdAt": "2026-05-16T13:19:11.611Z"
+        }
+      ],
+      "summaryEmailStatus": "PENDING",
+      "id": "8ab884a8-bcc7-41e9-a984-70a96823dd76",
+      "createdAt": "2026-05-16T13:19:11.474Z",
+      "updatedAt": "2026-05-16T13:19:11.611Z"
+    }
+  ],
+  "reschedules": [],
+  "chatMessages": [
+    {
+      "fromUserId": "5bd74ce8-47f4-4158-8d23-471bd63fd1de",
+      "toUserId": "5bd74ce8-47f4-4158-8d23-471bd63fd1de",
+      "body": "# Meeting Brief\n\n## Client Request Summary\nI need to discuss market strategy, team alignment, and launch sequencing.",
+      "appointmentId": "8ab884a8-bcc7-41e9-a984-70a96823dd76",
+      "attachments": [
+        {
+          "id": "6936ff7a-6b61-4389-b489-b33819252724",
+          "type": "readme",
+          "fileName": "appointment-8ab884a8-bcc7-41e9-a984-70a96823dd76-draft-3546f6aa-3620-4696-be17-a617751f7db5.README.md",
+          "filePath": "apps/api/data-smoke/attachments/appointment-8ab884a8-bcc7-41e9-a984-70a96823dd76-draft-3546f6aa-3620-4696-be17-a617751f7db5.README.md",
+          "createdAt": "2026-05-16T13:19:11.611Z"
+        },
+        {
+          "id": "ff0d3194-aa12-41e8-aa8e-4ba9edf7f3a5",
+          "type": "pdf",
+          "fileName": "appointment-8ab884a8-bcc7-41e9-a984-70a96823dd76-draft-3546f6aa-3620-4696-be17-a617751f7db5.summary.pdf",
+          "filePath": "apps/api/data-smoke/attachments/appointment-8ab884a8-bcc7-41e9-a984-70a96823dd76-draft-3546f6aa-3620-4696-be17-a617751f7db5.summary.pdf",
+          "createdAt": "2026-05-16T13:19:11.611Z"
+        }
+      ],
+      "id": "6353ad07-c88c-4fd2-917c-48907cc8a253",
+      "createdAt": "2026-05-16T13:19:11.612Z"
+    }
+  ],
+  "aiOutputs": [
+    {
+      "id": "3dc11d98-a766-4eca-b03c-1481d31d012c",
+      "appointmentId": "8ab884a8-bcc7-41e9-a984-70a96823dd76",
+      "clientId": "5bd74ce8-47f4-4158-8d23-471bd63fd1de",
+      "prompt": "I need to discuss market strategy, team alignment, and launch sequencing.",
+      "summaryText": "# Meeting Brief\n\n## Client Request Summary\nI need to discuss market strategy, team alignment, and launch sequencing.",
+      "readmeAttachmentId": "6936ff7a-6b61-4389-b489-b33819252724",
+      "pdfAttachmentId": "ff0d3194-aa12-41e8-aa8e-4ba9edf7f3a5",
+      "createdAt": "2026-05-16T13:19:11.611Z"
+    }
+  ],
+  "emailDispatches": []
+}

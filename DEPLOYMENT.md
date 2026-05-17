@@ -7,6 +7,7 @@ This guide covers deploying Build-Empire to multiple cloud platforms. Choose one
 ## Prerequisites (All Platforms)
 
 ### 1. Local Setup
+
 ```bash
 cd /home/givenchi/Build-Empire
 npm run bootstrap:prod  # Generates .env, secrets/, and TLS certs
@@ -14,11 +15,14 @@ npm run smoke          # Validates your setup end-to-end
 ```
 
 ### 2. GitHub Repository
+
 - Repo must be pushed to GitHub: `https://github.com/Givforks/Build-Empire`
 - Ensure CI/CD pipeline passes (GitHub Actions checks main branch)
 
 ### 3. Environment Variables
+
 Every platform requires these (set in platform dashboard or `--env-file`):
+
 ```
 NODE_ENV=production
 PORT=4010
@@ -43,6 +47,7 @@ AUTO_RUN_MIGRATIONS=true  (to auto-migrate PostgreSQL schema on startup)
 ### 1. Render.com (Recommended for Beginners)
 
 **Why Render?**
+
 - One-click GitHub integration
 - Free tier available
 - Auto-deploys on git push
@@ -51,14 +56,17 @@ AUTO_RUN_MIGRATIONS=true  (to auto-migrate PostgreSQL schema on startup)
 **Steps:**
 
 1. **Create Render Account**
+
    ```
    https://dashboard.render.com/register
    ```
 
 2. **Run Deployment Script**
+
    ```bash
    npm run deploy:render
    ```
+
    The script will:
    - Check for Render CLI installation
    - Create Procfile for web/API services
@@ -88,6 +96,7 @@ AUTO_RUN_MIGRATIONS=true  (to auto-migrate PostgreSQL schema on startup)
 ### 2. Fly.io (Best for Advanced Users)
 
 **Why Fly.io?**
+
 - Global edge deployment
 - PostgreSQL managed database
 - Excellent performance
@@ -96,21 +105,24 @@ AUTO_RUN_MIGRATIONS=true  (to auto-migrate PostgreSQL schema on startup)
 **Steps:**
 
 1. **Create Fly Account & Install CLI**
+
    ```bash
    # Sign up
    https://fly.io/app/sign-up
-   
+
    # Install flyctl
    curl -L https://fly.io/install.sh | sh
-   
+
    # Login
    flyctl auth login
    ```
 
 2. **Run Deployment Script**
+
    ```bash
    npm run deploy:fly
    ```
+
    The script will:
    - Generate `fly.toml` configuration
    - Create app on Fly
@@ -118,6 +130,7 @@ AUTO_RUN_MIGRATIONS=true  (to auto-migrate PostgreSQL schema on startup)
    - Deploy containers
 
 3. **Manual Deployment** (if needed)
+
    ```bash
    flyctl apps create build-empire
    flyctl secrets set NODE_ENV=production JWT_SECRET=$(cat secrets/jwt_secret.txt)
@@ -139,6 +152,7 @@ AUTO_RUN_MIGRATIONS=true  (to auto-migrate PostgreSQL schema on startup)
 ### 3. DigitalOcean App Platform
 
 **Why DigitalOcean?**
+
 - Predictable pricing ($5-50/month)
 - Managed PostgreSQL
 - Simple YAML config
@@ -147,20 +161,24 @@ AUTO_RUN_MIGRATIONS=true  (to auto-migrate PostgreSQL schema on startup)
 **Steps:**
 
 1. **Create DigitalOcean Account**
+
    ```
    https://cloud.digitalocean.com/registrations/new
    ```
 
 2. **Run Deployment Script**
+
    ```bash
    npm run deploy:digitalocean
    ```
+
    The script will:
    - Generate `app.yaml` for App Platform
    - Output commands to create managed DB
    - Show deploy instructions
 
 3. **Manual Deployment**
+
    ```bash
    # Connect GitHub via DigitalOcean dashboard
    # Upload app.yaml via dashboard
@@ -184,12 +202,14 @@ AUTO_RUN_MIGRATIONS=true  (to auto-migrate PostgreSQL schema on startup)
 ### 4. AWS (For Enterprise/Complex Setups)
 
 **Why AWS?**
+
 - Maximum control and flexibility
 - Auto-scaling
 - CDN + load balancing included
 - Best for high-traffic scenarios
 
 **Architecture**:
+
 - ECS Fargate (containers)
 - RDS PostgreSQL (database)
 - ALB (load balancer)
@@ -198,17 +218,19 @@ AUTO_RUN_MIGRATIONS=true  (to auto-migrate PostgreSQL schema on startup)
 **Steps:**
 
 1. **Create AWS Account & Install Tools**
+
    ```bash
    # Install AWS CLI
    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
    unzip awscliv2.zip
    sudo ./aws/install
-   
+
    # Configure credentials
    aws configure
    ```
 
 2. **Run Deployment Script** (generates Terraform hints)
+
    ```bash
    npm run deploy:aws
    ```
@@ -216,6 +238,7 @@ AUTO_RUN_MIGRATIONS=true  (to auto-migrate PostgreSQL schema on startup)
 3. **Infrastructure Setup** (choose one method):
 
    **Option A: Terraform** (Recommended)
+
    ```bash
    # Script generates terraform recommendations
    # Create infra/terraform/main.tf with:
@@ -223,7 +246,7 @@ AUTO_RUN_MIGRATIONS=true  (to auto-migrate PostgreSQL schema on startup)
    # - RDS PostgreSQL instance
    # - ALB + target groups
    # - Auto Scaling Group
-   
+
    terraform init
    terraform plan
    terraform apply
@@ -238,12 +261,13 @@ AUTO_RUN_MIGRATIONS=true  (to auto-migrate PostgreSQL schema on startup)
    - Configure Route 53 DNS
 
 4. **Deploy**
+
    ```bash
    # Push images to ECR
    aws ecr get-login-password | docker login --username AWS --password-stdin <ECR_URI>
    docker tag build-empire-api:latest <ECR_URI>/build-empire-api:latest
    docker push <ECR_URI>/build-empire-api:latest
-   
+
    # Update ECS service (triggers rolling update)
    aws ecs update-service \
      --cluster build-empire \
@@ -288,6 +312,7 @@ npm run docker:down:prod
 ## Post-Deployment Checklist
 
 1. **Health Check**
+
    ```bash
    curl https://your-app-url/health
    ```
@@ -300,6 +325,7 @@ npm run docker:down:prod
    - Verify email dispatch logs
 
 3. **Database Verification**
+
    ```bash
    # Check migrations ran
    # Verify data persisted across restarts
@@ -320,23 +346,27 @@ npm run docker:down:prod
 ## Rollback Procedures
 
 ### Render.com
+
 ```bash
 # Revert to previous deployment
 # Dashboard → Deployments → Previous version → Redeploy
 ```
 
 ### Fly.io
+
 ```bash
 flyctl releases list
 flyctl releases rollback <VERSION>
 ```
 
 ### DigitalOcean
+
 ```bash
 # Dashboard → App → Deployments → Previous → Redeploy
 ```
 
 ### AWS
+
 ```bash
 # Update ECS service to previous task definition version
 aws ecs update-service \
@@ -352,21 +382,25 @@ aws ecs update-service \
 ### Common Issues
 
 **"Database connection refused"**
+
 - Verify DATABASE_URL environment variable
 - Check database is running and accessible
 - For AWS: verify security groups allow port 5432
 
 **"API not responding"**
+
 - Check logs: `npm run docker:logs` (local) or platform logs (cloud)
 - Verify port is correct (4010 for API)
 - Check JWT_SECRET is set
 
 **"Frontend can't reach API"**
+
 - Verify FRONTEND_URL matches your domain
 - Check CORS settings in Express (should be open in prod)
 - Verify API is publicly accessible
 
 **"Migration failed"**
+
 - Check DATABASE_URL points to correct database
 - Verify database user has CREATE/ALTER permissions
 - Run manually: `npm run migrate -w @build-empire/api`
@@ -402,6 +436,7 @@ npm run deploy:aws
 ## Environment Checklist for Each Platform
 
 ### Render
+
 - [ ] GitHub repo connected
 - [ ] Build command: `npm run build`
 - [ ] Start command: `npm run start:prod`
@@ -409,18 +444,21 @@ npm run deploy:aws
 - [ ] All env vars set in dashboard
 
 ### Fly.io
+
 - [ ] `flyctl` installed and logged in
 - [ ] `fly.toml` generated
 - [ ] PostgreSQL database provisioned
 - [ ] Secrets set with `flyctl secrets set`
 
 ### DigitalOcean
+
 - [ ] GitHub connected in DigitalOcean
 - [ ] `app.yaml` uploaded
 - [ ] Managed PostgreSQL created
 - [ ] All env vars set in app.yaml or dashboard
 
 ### AWS
+
 - [ ] AWS CLI configured with credentials
 - [ ] ECR repository created
 - [ ] RDS PostgreSQL instance running
