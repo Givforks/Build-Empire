@@ -14,7 +14,7 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-GivenchiCodes}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Givenchi1@@@@@}
       DATABASE_URL: postgresql://${POSTGRES_USER:-build_empire}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-build_empire}
-      AUTO_RUN_MIGRATIONS: "true"
+      AUTO_RUN_MIGRATIONS: 'true'
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
@@ -23,7 +23,7 @@ services:
     volumes:
       - build_empire_api_data:/app/data
     expose:
-      - "4000"
+      - '4000'
     depends_on:
       - postgres
 
@@ -32,12 +32,12 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        VITE_API_BASE_URL: ""
+        VITE_API_BASE_URL: ''
     container_name: build-empire-web
     depends_on:
       - api
     ports:
-      - "8080:80"
+      - '8080:80'
 
   postgres:
     image: postgres:16-alpine
@@ -50,7 +50,11 @@ services:
     volumes:
       - build_empire_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-build_empire} -d ${POSTGRES_DB:-build_empire}"]
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:-build_empire} -d ${POSTGRES_DB:-build_empire}',
+        ]
       interval: 10s
       timeout: 5s
       retries: 6

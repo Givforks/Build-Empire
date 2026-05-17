@@ -1,28 +1,28 @@
-import fs from "node:fs";
-import path from "node:path";
-import { Client } from "pg";
-import { config } from "./config.js";
+import fs from 'node:fs';
+import path from 'node:path';
+import { Client } from 'pg';
+import { config } from './config.js';
 
 function getMigrationFiles() {
-  const dir = path.resolve(process.cwd(), "migrations");
+  const dir = path.resolve(process.cwd(), 'migrations');
   if (!fs.existsSync(dir)) {
     throw new Error(`Migration directory not found: ${dir}`);
   }
 
   return fs
     .readdirSync(dir)
-    .filter((name) => name.endsWith(".sql"))
+    .filter((name) => name.endsWith('.sql'))
     .sort()
     .map((name) => ({
       version: name,
       fullPath: path.join(dir, name),
-      sql: fs.readFileSync(path.join(dir, name), "utf-8")
+      sql: fs.readFileSync(path.join(dir, name), 'utf-8'),
     }));
 }
 
 export async function runMigrations() {
   if (!config.DATABASE_URL) {
-    throw new Error("DATABASE_URL is required to run SQL migrations.");
+    throw new Error('DATABASE_URL is required to run SQL migrations.');
   }
 
   const client = new Client({ connectionString: config.DATABASE_URL });
@@ -37,7 +37,7 @@ export async function runMigrations() {
     `);
 
     const appliedRows = await client.query<{ version: string }>(
-      "SELECT version FROM schema_migrations"
+      'SELECT version FROM schema_migrations'
     );
     const appliedSet = new Set(appliedRows.rows.map((r) => r.version));
 
@@ -46,13 +46,15 @@ export async function runMigrations() {
     for (const migration of migrations) {
       if (appliedSet.has(migration.version)) continue;
 
-      await client.query("BEGIN");
+      await client.query('BEGIN');
       try {
         await client.query(migration.sql);
-        await client.query("INSERT INTO schema_migrations(version) VALUES ($1)", [migration.version]);
-        await client.query("COMMIT");
+        await client.query('INSERT INTO schema_migrations(version) VALUES ($1)', [
+          migration.version,
+        ]);
+        await client.query('COMMIT');
       } catch (error) {
-        await client.query("ROLLBACK");
+        await client.query('ROLLBACK');
         throw new Error(`Migration failed (${migration.version}): ${(error as Error).message}`);
       }
     }

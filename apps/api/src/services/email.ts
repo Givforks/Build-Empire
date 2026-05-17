@@ -1,6 +1,6 @@
-import nodemailer from "nodemailer";
-import { config } from "../config.js";
-import type { User, Appointment } from "../types.js";
+import nodemailer from 'nodemailer';
+import { config } from '../config.js';
+import type { User, Appointment } from '../types.js';
 
 function makeTransport() {
   if (config.SMTP_HOST && config.SMTP_USER && config.SMTP_PASS) {
@@ -10,15 +10,15 @@ function makeTransport() {
       secure: config.SMTP_PORT === 465,
       auth: {
         user: config.SMTP_USER,
-        pass: config.SMTP_PASS
-      }
+        pass: config.SMTP_PASS,
+      },
     });
   }
 
   return nodemailer.createTransport({
     streamTransport: true,
-    newline: "unix",
-    buffer: true
+    newline: 'unix',
+    buffer: true,
   });
 }
 
@@ -35,7 +35,7 @@ export async function sendSummaryEmail(input: {
     to: input.to,
     subject: input.subject,
     text: input.text,
-    attachments: input.attachments
+    attachments: input.attachments,
   });
 
   return info;
@@ -46,7 +46,7 @@ export async function sendSummaryEmail(input: {
  */
 export async function sendAppointmentConfirmation(client: User, appointment: Appointment) {
   if (!client.email) return;
-  
+
   const html = `
     <h2>Appointment Confirmation 📅</h2>
     <p>Hi ${client.fullName},</p>
@@ -66,10 +66,10 @@ export async function sendAppointmentConfirmation(client: User, appointment: App
       from: config.SMTP_FROM,
       to: client.email,
       subject: `Appointment Confirmation - ${appointment.topic}`,
-      html
+      html,
     });
   } catch (error) {
-    console.error("Failed to send appointment confirmation:", error);
+    console.error('Failed to send appointment confirmation:', error);
   }
 }
 
@@ -91,10 +91,10 @@ export async function sendAppointmentApproved(
     <ul>
       <li><strong>Topic:</strong> ${appointment.topic}</li>
       <li><strong>Specialist:</strong> ${superuser.fullName}</li>
-      <li><strong>Specializations:</strong> ${(superuser.specializations || []).join(", ") || "General"}</li>
+      <li><strong>Specializations:</strong> ${(superuser.specializations || []).join(', ') || 'General'}</li>
     </ul>
     <p>You'll receive follow-up details shortly with meeting information.</p>
-    <p><a href="${config.WEB_ORIGIN || "https://app.example.com"}" style="background:#8b5cf6;color:white;padding:10px 20px;border-radius:5px;text-decoration:none;">View Appointment</a></p>
+    <p><a href="${config.WEB_ORIGIN || 'https://app.example.com'}" style="background:#8b5cf6;color:white;padding:10px 20px;border-radius:5px;text-decoration:none;">View Appointment</a></p>
   `;
 
   try {
@@ -102,10 +102,10 @@ export async function sendAppointmentApproved(
       from: config.SMTP_FROM,
       to: client.email,
       subject: `Appointment Approved! ✓`,
-      html
+      html,
     });
   } catch (error) {
-    console.error("Failed to send approval email:", error);
+    console.error('Failed to send approval email:', error);
   }
 }
 
@@ -125,7 +125,7 @@ export async function sendAppointmentRejected(client: User, appointment: Appoint
       <li><strong>Status:</strong> Awaiting Rescheduling</li>
     </ul>
     <p>Please log back into your account to reschedule or modify your request.</p>
-    <p><a href="${config.WEB_ORIGIN || "https://app.example.com"}" style="background:#ef4444;color:white;padding:10px 20px;border-radius:5px;text-decoration:none;">Reschedule</a></p>
+    <p><a href="${config.WEB_ORIGIN || 'https://app.example.com'}" style="background:#ef4444;color:white;padding:10px 20px;border-radius:5px;text-decoration:none;">Reschedule</a></p>
   `;
 
   try {
@@ -133,17 +133,21 @@ export async function sendAppointmentRejected(client: User, appointment: Appoint
       from: config.SMTP_FROM,
       to: client.email,
       subject: `Appointment Needs Adjustment`,
-      html
+      html,
     });
   } catch (error) {
-    console.error("Failed to send rejection email:", error);
+    console.error('Failed to send rejection email:', error);
   }
 }
 
 /**
  * Send appointment reminder to client (24 hours before)
  */
-export async function sendAppointmentReminder(client: User, appointment: Appointment, superuser: User) {
+export async function sendAppointmentReminder(
+  client: User,
+  appointment: Appointment,
+  superuser: User
+) {
   if (!client.email) return;
 
   const html = `
@@ -157,7 +161,7 @@ export async function sendAppointmentReminder(client: User, appointment: Appoint
       <li><strong>Time:</strong> Check your dashboard for exact time</li>
     </ul>
     <p>Please join a few minutes early.</p>
-    <p><a href="${config.WEB_ORIGIN || "https://app.example.com"}" style="background:#0f2a66;color:white;padding:10px 20px;border-radius:5px;text-decoration:none;">Join Now</a></p>
+    <p><a href="${config.WEB_ORIGIN || 'https://app.example.com'}" style="background:#0f2a66;color:white;padding:10px 20px;border-radius:5px;text-decoration:none;">Join Now</a></p>
   `;
 
   try {
@@ -165,10 +169,10 @@ export async function sendAppointmentReminder(client: User, appointment: Appoint
       from: config.SMTP_FROM,
       to: client.email,
       subject: `Reminder: Appointment Tomorrow!`,
-      html
+      html,
     });
   } catch (error) {
-    console.error("Failed to send reminder email:", error);
+    console.error('Failed to send reminder email:', error);
   }
 }
 
@@ -187,9 +191,9 @@ export async function sendMessageNotification(
     <p>Hi ${recipient.fullName},</p>
     <p><strong>${senderName}</strong> sent you a new message:</p>
     <blockquote style="border-left:3px solid #8b5cf6;padding-left:15px;margin:15px 0;">
-      ${messagePreview.substring(0, 150)}${messagePreview.length > 150 ? "..." : ""}
+      ${messagePreview.substring(0, 150)}${messagePreview.length > 150 ? '...' : ''}
     </blockquote>
-    <p><a href="${config.WEB_ORIGIN || "https://app.example.com"}" style="background:#8b5cf6;color:white;padding:10px 20px;border-radius:5px;text-decoration:none;">Reply</a></p>
+    <p><a href="${config.WEB_ORIGIN || 'https://app.example.com'}" style="background:#8b5cf6;color:white;padding:10px 20px;border-radius:5px;text-decoration:none;">Reply</a></p>
   `;
 
   try {
@@ -197,9 +201,9 @@ export async function sendMessageNotification(
       from: config.SMTP_FROM,
       to: recipient.email,
       subject: `New message from ${senderName}`,
-      html
+      html,
     });
   } catch (error) {
-    console.error("Failed to send message notification:", error);
+    console.error('Failed to send message notification:', error);
   }
 }

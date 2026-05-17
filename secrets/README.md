@@ -1,6 +1,7 @@
 Place runtime secret values here before production compose deployment.
 
 Required files:
+
 - jwt_secret.txt
 - admin_password.txt
 - smtp_password.txt

@@ -3,6 +3,7 @@
 ## 🔒 Current Security Features
 
 Your project currently has:
+
 - ✅ **JWT Authentication** with expiring tokens
 - ✅ **bcryptjs Password Hashing** (10 salt rounds)
 - ✅ **Express Rate Limiting** on `/api/auth` and `/api/ai`
@@ -18,17 +19,19 @@ Your project currently has:
 ### 1. Add Helmet.js (Security Headers)
 
 **Install:**
+
 ```bash
 npm install helmet
 ```
 
 **Add to `apps/api/src/server.ts` (after imports):**
+
 ```typescript
 import helmet from "helmet";
 
 export function createApp() {
   const app = express();
-  
+
   // Security headers
   app.use(helmet());
   app.use(helmet.contentSecurityPolicy({
@@ -42,6 +45,7 @@ export function createApp() {
 ```
 
 **What it does:**
+
 - Sets `X-Frame-Options: DENY` (prevents clickjacking)
 - Sets `X-Content-Type-Options: nosniff` (prevents MIME sniffing)
 - Sets `Strict-Transport-Security` (forces HTTPS)
@@ -54,13 +58,15 @@ export function createApp() {
 **Current:** Minimum 10 characters
 
 **Recommended Enhancement:**
+
 ```typescript
-const strengthPasswordSchema = z.string()
+const strengthPasswordSchema = z
+  .string()
   .min(12)
-  .regex(/[A-Z]/, "Must contain uppercase")
-  .regex(/[a-z]/, "Must contain lowercase")
-  .regex(/[0-9]/, "Must contain number")
-  .regex(/[!@#$%^&*]/, "Must contain special char");
+  .regex(/[A-Z]/, 'Must contain uppercase')
+  .regex(/[a-z]/, 'Must contain lowercase')
+  .regex(/[0-9]/, 'Must contain number')
+  .regex(/[!@#$%^&*]/, 'Must contain special char');
 ```
 
 ---
@@ -68,19 +74,20 @@ const strengthPasswordSchema = z.string()
 ### 3. Implement Request Logging
 
 **Add to `server.ts`:**
+
 ```typescript
-import fs from "node:fs";
+import fs from 'node:fs';
 
 function logRequest(method: string, path: string, status: number, duration: number) {
   const timestamp = new Date().toISOString();
   const log = `${timestamp} ${method} ${path} ${status} ${duration}ms\n`;
-  fs.appendFileSync("logs/access.log", log);
+  fs.appendFileSync('logs/access.log', log);
 }
 
 // After each response:
 app.use((req, res, next) => {
   const start = Date.now();
-  res.on("finish", () => {
+  res.on('finish', () => {
     logRequest(req.method, req.path, res.statusCode, Date.now() - start);
   });
   next();
@@ -94,15 +101,16 @@ app.use((req, res, next) => {
 **Current:** Rate limit on `/api/auth` = 80 requests per 15 min
 
 **Enhanced:**
+
 ```typescript
 const bruteForceProtection = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,  // 5 attempts per 15 minutes
-  skipSuccessfulRequests: true,  // Don't count successful logins
-  message: "Too many login attempts, try again later"
+  max: 5, // 5 attempts per 15 minutes
+  skipSuccessfulRequests: true, // Don't count successful logins
+  message: 'Too many login attempts, try again later',
 });
 
-app.post("/api/auth/login", bruteForceProtection, async (req, res) => {
+app.post('/api/auth/login', bruteForceProtection, async (req, res) => {
   // ... login logic
 });
 ```
@@ -112,11 +120,12 @@ app.post("/api/auth/login", bruteForceProtection, async (req, res) => {
 ### 5. Implement Admin Activity Audit Log
 
 **Schema:**
+
 ```typescript
 interface AuditLog {
   id: string;
   adminId: string;
-  action: "CREATE_USER" | "UPDATE_USER" | "DELETE_USER" | "VIEW_APPOINTMENTS";
+  action: 'CREATE_USER' | 'UPDATE_USER' | 'DELETE_USER' | 'VIEW_APPOINTMENTS';
   targetId: string;
   timestamp: string;
   changes?: Record<string, any>;
@@ -124,6 +133,7 @@ interface AuditLog {
 ```
 
 **Usage:**
+
 ```typescript
 function logAdminAction(adminId: string, action: string, targetId: string) {
   const entry = {
@@ -131,7 +141,7 @@ function logAdminAction(adminId: string, action: string, targetId: string) {
     adminId,
     action,
     targetId,
-    timestamp: now()
+    timestamp: now(),
   };
   database.saveAuditLog(entry);
 }
@@ -148,14 +158,17 @@ function logAdminAction(adminId: string, action: string, targetId: string) {
 
 const pool = new Pool({
   connectionString: config.DATABASE_URL,
-  max: 20,  // Max pool size
+  max: 20, // Max pool size
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
   // SSL required in production
-  ssl: config.NODE_ENV === "production" ? {
-    rejectUnauthorized: true,
-    ca: fs.readFileSync("certs/ca.pem", "utf-8")
-  } : false
+  ssl:
+    config.NODE_ENV === 'production'
+      ? {
+          rejectUnauthorized: true,
+          ca: fs.readFileSync('certs/ca.pem', 'utf-8'),
+        }
+      : false,
 });
 ```
 
@@ -164,16 +177,17 @@ const pool = new Pool({
 ### 7. Implement CSRF Protection
 
 **For form submissions (if adding HTML forms):**
+
 ```bash
 npm install csurf
 ```
 
 ```typescript
-import csrf from "csurf";
+import csrf from 'csurf';
 
 const csrfProtection = csrf({ cookie: true });
 
-app.post("/api/admin/users", csrfProtection, async (req, res) => {
+app.post('/api/admin/users', csrfProtection, async (req, res) => {
   // ... create user
 });
 ```
@@ -183,22 +197,24 @@ app.post("/api/admin/users", csrfProtection, async (req, res) => {
 ### 8. Content Security & Input Sanitization
 
 **Already in place:**
+
 - ✅ Zod validation on all inputs
 - ✅ JSON size limit (1MB)
 - ✅ Email format validation
 
 **Additional:** Add sanitization for text fields
+
 ```bash
 npm install xss
 ```
 
 ```typescript
-import xss from "xss";
+import xss from 'xss';
 
 function sanitizeText(text: string): string {
   return xss(text, {
-    whiteList: {},  // Strip all HTML
-    stripIgnoredTag: true
+    whiteList: {}, // Strip all HTML
+    stripIgnoredTag: true,
   });
 }
 
@@ -213,6 +229,7 @@ const message = sanitizeText(req.body.message);
 **Current:** API key in `.env.postman`
 
 **Production Recommendation:**
+
 - Store in environment variable only (never in code)
 - Use secret rotation every 90 days
 - Implement API key versioning:
@@ -220,7 +237,7 @@ const message = sanitizeText(req.body.message);
 ```typescript
 interface APIKey {
   id: string;
-  key: string;  // hashed
+  key: string; // hashed
   name: string;
   createdAt: string;
   lastUsedAt: string;
@@ -242,6 +259,7 @@ function validateAPIKey(key: string): APIKey | null {
 ### 10. Dependency Security
 
 **Run regularly:**
+
 ```bash
 npm audit
 npm audit fix
@@ -251,16 +269,17 @@ npm outdated
 **Recommended: Auto-update with Dependabot**
 
 Create `.github/dependabot.yml`:
+
 ```yaml
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
+      interval: 'weekly'
     allow:
-      - dependency-type: "direct"
-      - dependency-type: "indirect"
+      - dependency-type: 'direct'
+      - dependency-type: 'indirect'
 ```
 
 ---
@@ -270,11 +289,12 @@ updates:
 ### If Breach Suspected
 
 1. **Immediate Actions:**
+
    ```bash
    # Rotate all secrets
    JWT_SECRET=<new random>
    ADMIN_PASSWORD=<new bcrypt hash>
-   
+
    # Revoke all active tokens
    # (Log out all users)
    ```

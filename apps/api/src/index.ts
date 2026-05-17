@@ -1,6 +1,6 @@
-import { createApp } from "./server.js";
-import { config } from "./config.js";
-import { runMigrations } from "./migrations.js";
+import { createApp } from './server.js';
+import { config } from './config.js';
+import { runMigrations } from './migrations.js';
 
 const port = config.PORT;
 const { httpServer } = createApp();
@@ -18,6 +18,6 @@ async function start() {
 
 start().catch((error) => {
   // eslint-disable-next-line no-console
-  console.error("Failed to start API:", error);
+  console.error('Failed to start API:', error);
   process.exit(1);
 });

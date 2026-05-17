@@ -9,6 +9,7 @@ The GitHub Actions workflow for Build-Empire has been updated with comprehensive
 ## What the Workflow Does
 
 ### Job 1: test-and-build (Always Runs)
+
 1. ✅ Checkout code
 2. ✅ Setup Node 20
 3. ✅ Display system info (Node, npm, Docker versions)
@@ -21,6 +22,7 @@ The GitHub Actions workflow for Build-Empire has been updated with comprehensive
 **Result**: If all pass → Job 2 runs. If any fail → Pipeline stops.
 
 ### Job 2: docker-publish (Main branch push only)
+
 1. ✅ Checkout code
 2. ✅ Setup Docker Buildx
 3. ✅ Login to GitHub Container Registry (GHCR)
@@ -33,6 +35,7 @@ The GitHub Actions workflow for Build-Empire has been updated with comprehensive
 6. ✅ Display summary
 
 ### Job 3: deploy-notes (Main branch push only)
+
 1. ✅ Display deployment summary with next steps
 
 ---
@@ -40,6 +43,7 @@ The GitHub Actions workflow for Build-Empire has been updated with comprehensive
 ## Why Your Previous Build Might Have Failed
 
 ### Common Causes:
+
 1. **Old test data**: `apps/api/data-smoke/` directory not cleaned → **FIXED: Tests now clean up**
 2. **Stale cache**: npm cache issues → **FIXED: Using `npm ci` for clean install**
 3. **Missing environment**: Missing `.env` files → **FIXED: `.env` created on startup**
@@ -74,6 +78,7 @@ The GitHub Actions workflow for Build-Empire has been updated with comprehensive
 ## Expected Workflow Output
 
 ### test-and-build Job
+
 ```
 ✅ Checkout
 ✅ Setup Node 20
@@ -106,6 +111,7 @@ The GitHub Actions workflow for Build-Empire has been updated with comprehensive
 ```
 
 ### docker-publish Job
+
 ```
 ✅ Setup Docker Buildx
 ✅ Login to GHCR
@@ -118,6 +124,7 @@ The GitHub Actions workflow for Build-Empire has been updated with comprehensive
 ```
 
 ### deploy-notes Job
+
 ```
 ✅ Deployment summary displayed
    - Deployment options listed
@@ -134,17 +141,18 @@ The GitHub Actions workflow for Build-Empire has been updated with comprehensive
 2. **Look for the exact error message** (usually red text)
 3. **Common error patterns**:
 
-| Error | Cause | Fix |
-|-------|-------|-----|
-| `npm ERR! ERESOLVE unable to resolve dependency tree` | Dependency conflict | Try: `npm audit fix --force` |
-| `Test failed: Cannot find module` | Missing imports | Run locally: `npm test` |
-| `Docker daemon not responding` | Docker not running in Actions | Re-run the workflow (usually recovers) |
-| `EADDRINUSE: address already in use` | Port conflict | Usually resolves on re-run |
-| `Authentication failed` | GitHub token issue | Check if GITHUB_TOKEN secret exists |
+| Error                                                 | Cause                         | Fix                                    |
+| ----------------------------------------------------- | ----------------------------- | -------------------------------------- |
+| `npm ERR! ERESOLVE unable to resolve dependency tree` | Dependency conflict           | Try: `npm audit fix --force`           |
+| `Test failed: Cannot find module`                     | Missing imports               | Run locally: `npm test`                |
+| `Docker daemon not responding`                        | Docker not running in Actions | Re-run the workflow (usually recovers) |
+| `EADDRINUSE: address already in use`                  | Port conflict                 | Usually resolves on re-run             |
+| `Authentication failed`                               | GitHub token issue            | Check if GITHUB_TOKEN secret exists    |
 
 ### If Docker Publish Fails
 
 Check that GITHUB_TOKEN is properly set:
+
 - Go to repo Settings → Secrets and variables → Actions
 - GITHUB_TOKEN should be listed (GitHub provides this automatically)
 - If not present, go back to re-run (it auto-creates)
@@ -159,7 +167,7 @@ Run this locally to test exactly what GitHub will do:
 cd /home/givenchi/Build-Empire
 
 # Simulate the test-and-build job
-echo "=== Simulating GitHub Actions ===" 
+echo "=== Simulating GitHub Actions ==="
 npm ci --verbose
 npm run test
 npm run build
@@ -169,6 +177,7 @@ echo "✅ All steps pass locally - GitHub should pass too"
 ```
 
 If this passes locally but fails on GitHub, the issue is usually:
+
 - GitHub Actions environment-specific (rare)
 - Temporary GitHub infrastructure issue
 - Cache issues (solved by re-running)
@@ -191,11 +200,13 @@ If this passes locally but fails on GitHub, the issue is usually:
 ## Next Steps
 
 ### Immediate
+
 1. Go to: https://github.com/Givforks/Build-Empire/actions
 2. Click "Re-run failed jobs" on the most recent run
 3. Wait 5 minutes for completion
 
 ### After Success
+
 1. ✅ All tests pass in CI/CD
 2. ✅ Docker images pushed to GHCR
 3. ✅ Ready to deploy to cloud platforms
@@ -218,6 +229,7 @@ Web:  ghcr.io/givforks/build-empire-web:latest
 ```
 
 Use these for deployment:
+
 ```bash
 docker pull ghcr.io/givforks/build-empire-api:latest
 docker pull ghcr.io/givforks/build-empire-web:latest
@@ -227,14 +239,14 @@ docker pull ghcr.io/givforks/build-empire-web:latest
 
 ## Summary
 
-| Item | Status |
-|------|--------|
-| Workflow file | ✅ Enhanced |
-| Test script | ✅ Working |
-| Build process | ✅ Working |
-| Docker configs | ✅ Valid |
-| Local simulation | ✅ Passing |
-| GitHub push | ✅ Ready |
+| Item             | Status      |
+| ---------------- | ----------- |
+| Workflow file    | ✅ Enhanced |
+| Test script      | ✅ Working  |
+| Build process    | ✅ Working  |
+| Docker configs   | ✅ Valid    |
+| Local simulation | ✅ Passing  |
+| GitHub push      | ✅ Ready    |
 
 **Action Required**: Go to https://github.com/Givforks/Build-Empire/actions and click "Re-run failed jobs"
 
