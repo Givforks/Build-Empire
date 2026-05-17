@@ -9,6 +9,7 @@ import { v4 as uuid } from 'uuid';
 import { z } from 'zod';
 import { createServer } from 'node:http';
 import * as Sentry from '@sentry/node';
+import client from 'prom-client';
 import { Server as SocketIOServer } from 'socket.io';
 import { requireAuth, requireRole, signToken } from './auth.js';
 import { config } from './config.js';
@@ -338,6 +339,22 @@ export function createApp() {
   app.get('/health', (_req, res) => {
     res.json({ ok: true, env: config.NODE_ENV, time: now() });
   });
+
+  // Expose Prometheus metrics if enabled
+  try {
+    client.collectDefaultMetrics({ timeout: 5000 });
+    app.get('/metrics', async (_req, res) => {
+      try {
+        res.set('Content-Type', client.register.contentType);
+        res.send(await client.register.metrics());
+      } catch (err) {
+        res.status(500).send('Failed to collect metrics');
+      }
+    });
+  } catch (e) {
+    // prom client may fail in some environments; ignore to keep API running
+    console.warn('Prometheus client not initialized:', e?.message || e);
+  }
 
   // Admin analytics endpoint
   app.get('/api/admin/analytics', requireAuth, requireRole('admin'), async (req, res) => {
