@@ -6,12 +6,12 @@ permissions:
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -30,24 +30,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Cache node modules
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
       - name: Install dependencies
         run: npm ci
 
-      - name: Build packages
-        run: npm run build --workspaces
+      - name: Build API
+        run: npm run build -w @build-empire/api
+
+      - name: Build Web
+        run: npm run build -w @build-empire/web
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -90,11 +85,14 @@ jobs:
         run: |
           for i in {1..30}; do
             if curl -fsS http://localhost:4010/health >/dev/null 2>&1; then
-              echo "API healthy"; exit 0
+              echo "API healthy"
+              exit 0
             fi
             sleep 1
           done
-          echo "API did not become healthy"; cat api-ci.log || true; exit 1
+          echo "API did not become healthy"
+          cat api-ci.log || true
+          exit 1
 
       - name: Run smoke checks
         run: |
@@ -106,64 +104,30 @@ jobs:
             LOGIN_JSON=$(curl -sS -X POST "http://localhost:${API_PORT}/api/auth/login" -H 'Content-Type: application/json' -d '{"email":"ci-smoke@example.com","password":"CiPass123!"}')
             TOKEN=$(printf '%s' "$LOGIN_JSON" | node -e 'const fs=require("fs");try{const d=JSON.parse(fs.readFileSync(0,"utf8"));process.stdout.write(d.token||"")}catch(e){}')
           fi
-          if [[ -z "$TOKEN" ]]; then echo "Failed to obtain token"; cat api-ci.log || true; exit 1; fi
+          if [[ -z "$TOKEN" ]]; then
+            echo "Failed to obtain token"
+            cat api-ci.log || true
+            exit 1
+          fi
           APPOINTMENT_JSON=$(curl -sS -X POST "http://localhost:${API_PORT}/api/appointments" -H 'Content-Type: application/json' -H "Authorization: Bearer ${TOKEN}" -d '{"topic":"CI smoke appointment","preferredDates":[{"date":"2026-08-11","timeSlots":["11:00"]}]}')
           APPOINTMENT_ID=$(printf '%s' "$APPOINTMENT_JSON" | node -e 'const fs=require("fs");try{const d=JSON.parse(fs.readFileSync(0,"utf8"));process.stdout.write(d.id||"")}catch(e){}')
-          if [[ -z "$APPOINTMENT_ID" ]]; then echo "Failed to create appointment"; echo "Response: $APPOINTMENT_JSON"; cat api-ci.log || true; exit 1; fi
+          if [[ -z "$APPOINTMENT_ID" ]]; then
+            echo "Failed to create appointment"
+            echo "Response: $APPOINTMENT_JSON"
+            cat api-ci.log || true
+            exit 1
+          fi
           AI_JSON=$(curl -sS -X POST "http://localhost:${API_PORT}/api/ai/deepseek" -H 'Content-Type: application/json' -H "Authorization: Bearer ${TOKEN}" -d "{\"appointmentId\":\"${APPOINTMENT_ID}\",\"prompt\":\"CI smoke: summarize meeting\"}")
           ATTACH_COUNT=$(printf '%s' "$AI_JSON" | node -e 'const fs=require("fs");try{const d=JSON.parse(fs.readFileSync(0,"utf8"));process.stdout.write(String((d.attachments||[]).length))}catch(e){process.stdout.write("0")}')
-          if [[ "$ATTACH_COUNT" -lt 1 ]]; then echo "AI output missing attachments"; echo "AI response: $AI_JSON"; cat api-ci.log || true; exit 1; fi
+          if [[ "$ATTACH_COUNT" -lt 1 ]]; then
+            echo "AI output missing attachments"
+            echo "AI response: $AI_JSON"
+            cat api-ci.log || true
+            exit 1
+          fi
           echo "CI smoke test passed. Appointment: $APPOINTMENT_ID"
 
       - name: Teardown API
         if: always()
         run: |
           if [ -f api-ci.pid ]; then kill "$(cat api-ci.pid)" || true; fi
-name: CI
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
-jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run API tests
-        run: npm run test -w @build-empire/api
-
-      - name: Run Web tests
-        run: npm run test -w @build-empire/web || true
-
-      - name: Build API
-        run: npm run build -w @build-empire/api
-
-      - name: Build Web
-        run: npm run build -w @build-empire/web
-
-      - name: Run smoke tests
-        run: npm run smoke
-
-      - name: Create release artifact zip
-        run: |
-          mkdir -p artifacts
-          zip -r artifacts/build-empire-artifact.zip apps/api/dist apps/web/dist DEMO.md || true
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-empire-artifact
-          path: artifacts/build-empire-artifact.zip
