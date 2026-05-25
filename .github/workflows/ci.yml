@@ -57,7 +57,7 @@ jobs:
           context: .
           file: apps/api/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/build-empire-api:${{ github.sha }}
+          tags: ghcr.io/${{ toLower(github.repository_owner) }}/build-empire-api:${{ github.sha }}
 
       - name: Build and push web image
         uses: docker/build-push-action@v4
@@ -65,7 +65,7 @@ jobs:
           context: .
           file: apps/web/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/build-empire-web:${{ github.sha }}
+          tags: ghcr.io/${{ toLower(github.repository_owner) }}/build-empire-web:${{ github.sha }}
 
       - name: Run API in background for smoke tests
         run: |
