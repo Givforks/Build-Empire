@@ -342,7 +342,21 @@ export function createApp() {
 
   // Expose Prometheus metrics if enabled
   try {
-    client.collectDefaultMetrics();
+    // Avoid double-registration when tests or multiple app instances run
+    try {
+      const existing = (client.register.getMetricsAsArray && client.register.getMetricsAsArray()) || [];
+      const hasProcessCpu = existing.some((m: any) => m && m.name === 'process_cpu_user_seconds_total');
+      if (!hasProcessCpu) {
+        client.collectDefaultMetrics();
+      }
+    } catch (innerErr) {
+      // Fall back to attempting to collect metrics; if it fails, outer catch will handle it
+      try {
+        client.collectDefaultMetrics();
+      } catch (err) {
+        throw err || innerErr;
+      }
+    }
     app.get('/metrics', async (_req, res) => {
       try {
         res.set('Content-Type', client.register.contentType);
