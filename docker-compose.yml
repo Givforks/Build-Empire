@@ -24,6 +24,8 @@ services:
       - build_empire_api_data:/app/data
     expose:
       - '4000'
+    ports:
+      - '4000:4000'
     depends_on:
       - postgres
 

@@ -8,6 +8,7 @@ API_PORT="4010"
 DATA_DIR="./apps/api/data-smoke"
 LOG_FILE="./apps/api/data-smoke/smoke-api.log"
 mkdir -p "$DATA_DIR"
+rm -rf "$DATA_DIR"/*
 
 cleanup() {
   if [[ -n "${API_PID:-}" ]] && kill -0 "$API_PID" >/dev/null 2>&1; then
@@ -42,10 +43,15 @@ SIGNUP_JSON="$(curl -fsS -X POST "http://localhost:${API_PORT}/api/auth/signup" 
   -H 'Content-Type: application/json' \
   -d '{"email":"smoke-client@example.com","password":"ClientPass123!","fullName":"Smoke Client","preferredDates":[{"date":"2026-08-10","timeSlots":["10:00"]}]}'
 )"
-
-TOKEN="$(printf '%s' "$SIGNUP_JSON" | node -e 'const fs=require("fs");const d=JSON.parse(fs.readFileSync(0,"utf8"));process.stdout.write(d.token||"")')"
+TOKEN="$(printf '%s' "$SIGNUP_JSON" | node -e 'const fs=require("fs");try{const d=JSON.parse(fs.readFileSync(0,"utf8"));process.stdout.write(d.token||"")}catch(e){}')"
+if [[ -z "$TOKEN" ]]; then
+  # If signup failed (e.g., 409 user exists), try login
+  LOGIN_JSON="$(curl -fsS -X POST "http://localhost:${API_PORT}/api/auth/login" -H 'Content-Type: application/json' -d '{"email":"smoke-client@example.com","password":"ClientPass123!"}')" || true
+  TOKEN="$(printf '%s' "$LOGIN_JSON" | node -e 'const fs=require("fs");try{const d=JSON.parse(fs.readFileSync(0,"utf8"));process.stdout.write(d.token||"")}catch(e){}')"
+fi
 if [[ -z "$TOKEN" ]]; then
   echo "Failed to obtain token"
+  cat "$LOG_FILE" || true
   exit 1
 fi
 

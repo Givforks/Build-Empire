@@ -342,7 +342,21 @@ export function createApp() {
 
   // Expose Prometheus metrics if enabled
   try {
-    client.collectDefaultMetrics({ timeout: 5000 });
+    // Avoid double-registration when tests or multiple app instances run
+    try {
+      const existing = (client.register.getMetricsAsArray && client.register.getMetricsAsArray()) || [];
+      const hasProcessCpu = existing.some((m: any) => m && m.name === 'process_cpu_user_seconds_total');
+      if (!hasProcessCpu) {
+        client.collectDefaultMetrics();
+      }
+    } catch (innerErr) {
+      // Fall back to attempting to collect metrics; if it fails, outer catch will handle it
+      try {
+        client.collectDefaultMetrics();
+      } catch (err) {
+        throw err || innerErr;
+      }
+    }
     app.get('/metrics', async (_req, res) => {
       try {
         res.set('Content-Type', client.register.contentType);
@@ -353,7 +367,7 @@ export function createApp() {
     });
   } catch (e) {
     // prom client may fail in some environments; ignore to keep API running
-    console.warn('Prometheus client not initialized:', e?.message || e);
+    console.warn('Prometheus client not initialized:', (e as any)?.message || e);
   }
 
   // Admin analytics endpoint
@@ -994,10 +1008,11 @@ export function createApp() {
   };
 
   io.on('connection', (socket) => {
-    socket.on('auth:bind', (userId: string) => {
+    socket.on('auth:bind', async (userId: string) => {
       registerSocket(userId, socket.id);
 
-      const undelivered = database.listUndeliveredMessages(userId);
+      const maybeUndelivered = database.listUndeliveredMessages(userId);
+      const undelivered = maybeUndelivered instanceof Promise ? await maybeUndelivered : maybeUndelivered;
       for (const msg of undelivered) {
         pushToUser(userId, 'chat:message', msg);
         database.markChatDelivered(msg.id);
