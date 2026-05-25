@@ -994,10 +994,11 @@ export function createApp() {
   };
 
   io.on('connection', (socket) => {
-    socket.on('auth:bind', (userId: string) => {
+    socket.on('auth:bind', async (userId: string) => {
       registerSocket(userId, socket.id);
 
-      const undelivered = database.listUndeliveredMessages(userId);
+      const maybeUndelivered = database.listUndeliveredMessages(userId);
+      const undelivered = maybeUndelivered instanceof Promise ? await maybeUndelivered : maybeUndelivered;
       for (const msg of undelivered) {
         pushToUser(userId, 'chat:message', msg);
         database.markChatDelivered(msg.id);
