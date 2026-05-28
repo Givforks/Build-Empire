@@ -6,3 +6,4 @@ dist
 .gitignore
 coverage
 apps/api/data
+!apps/web/dist
