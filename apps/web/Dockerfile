@@ -3,7 +3,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY apps/web/package*.json ./apps/web/
 ENV NPM_CONFIG_UNSAFE_PERM=true
-RUN npm install --workspace @build-empire/web --include-workspace-root
+# Install with legacy-peer-deps to avoid peer dependency resolution differences
+RUN npm install --workspace @build-empire/web --include-workspace-root --legacy-peer-deps --no-audit --no-fund
 
 FROM node:20-alpine AS build
 WORKDIR /app
