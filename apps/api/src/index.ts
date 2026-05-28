@@ -11,13 +11,13 @@ async function start() {
   }
 
   httpServer.listen(port, () => {
-    // eslint-disable-next-line no-console
+     
     console.log(`API running on http://localhost:${port}`);
   });
 }
 
 start().catch((error) => {
-  // eslint-disable-next-line no-console
+   
   console.error('Failed to start API:', error);
   process.exit(1);
 });

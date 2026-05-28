@@ -283,7 +283,7 @@ export function createApp() {
   if (config.SENTRY_DSN) {
     try {
       Sentry.init({ dsn: config.SENTRY_DSN, environment: config.NODE_ENV });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const handlers: any = (Sentry as any).Handlers || (Sentry as any).handler || null;
       if (handlers && handlers.requestHandler) {
         app.use(handlers.requestHandler());
