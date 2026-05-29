@@ -17,6 +17,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set lowercase owner output
+        id: vars
+        run: |
+          OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "owner_lower=$OWNER_LOWER" >> $GITHUB_OUTPUT
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
@@ -46,7 +52,7 @@ jobs:
           file: apps/api/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/${{ toLower(github.repository_owner) }}/build-empire-api:latest,ghcr.io/${{ toLower(github.repository_owner) }}/build-empire-api:${{ github.sha }}
+          tags: ghcr.io/${{ steps.vars.outputs.owner_lower }}/build-empire-api:latest,ghcr.io/${{ steps.vars.outputs.owner_lower }}/build-empire-api:${{ github.sha }}
 
       - name: Build and push Web image
         uses: docker/build-push-action@v5
@@ -55,4 +61,4 @@ jobs:
           file: apps/web/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/${{ toLower(github.repository_owner) }}/build-empire-web:latest,ghcr.io/${{ toLower(github.repository_owner) }}/build-empire-web:${{ github.sha }}
+          tags: ghcr.io/${{ steps.vars.outputs.owner_lower }}/build-empire-web:latest,ghcr.io/${{ steps.vars.outputs.owner_lower }}/build-empire-web:${{ github.sha }}
