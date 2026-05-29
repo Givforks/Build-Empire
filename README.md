@@ -1,5 +1,9 @@
 # Build-Empire
 
+[![CI](https://github.com/Givforks/Build-Empire/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Givforks/Build-Empire/actions)
+[![Docker Pulls](https://img.shields.io/docker/pulls/givenchicodes/build-empire-api?style=for-the-badge)](https://hub.docker.com/r/givenchicodes/build-empire-api)
+[![Release](https://img.shields.io/github/v/tag/Givforks/Build-Empire?label=release&style=for-the-badge)](https://github.com/Givforks/Build-Empire/releases)
+
 Production-ready MVP for a mediated appointment workflow where admin controls approvals, client can generate an AI brief, and superuser details stay privacy-masked for clients.
 
 ## Core Features
