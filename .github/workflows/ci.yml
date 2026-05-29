@@ -30,6 +30,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set lowercase owner output
+        id: vars
+        run: |
+          OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "owner_lower=$OWNER_LOWER" >> $GITHUB_OUTPUT
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -57,7 +63,7 @@ jobs:
           context: .
           file: apps/api/Dockerfile
           push: true
-          tags: ghcr.io/${{ toLower(github.repository_owner) }}/build-empire-api:${{ github.sha }}
+          tags: ghcr.io/${{ steps.vars.outputs.owner_lower }}/build-empire-api:${{ github.sha }}
 
       - name: Build and push web image
         uses: docker/build-push-action@v4
@@ -65,7 +71,7 @@ jobs:
           context: .
           file: apps/web/Dockerfile
           push: true
-          tags: ghcr.io/${{ toLower(github.repository_owner) }}/build-empire-web:${{ github.sha }}
+          tags: ghcr.io/${{ steps.vars.outputs.owner_lower }}/build-empire-web:${{ github.sha }}
 
       - name: Run API in background for smoke tests
         run: |
