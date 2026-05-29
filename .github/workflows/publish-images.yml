@@ -38,7 +38,7 @@ jobs:
           # Fall back to the builtin `GITHUB_TOKEN` if `GHCR_PAT` is not set.
           password: ${{ secrets.GHCR_PAT || secrets.GITHUB_TOKEN }}
 
-      - name: Debug: print resolved image tags and env
+      - name: "Debug: print resolved image tags and env"
         run: |
           echo "OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
           echo "API_TAGS=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/build-empire-api:latest,ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/build-empire-api:${{ github.sha }}"
