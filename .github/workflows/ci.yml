@@ -21,7 +21,7 @@ jobs:
           POSTGRES_USER: build_empire
           POSTGRES_PASSWORD: change-me
         options: >-
-          --health-cmd="pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"
+          --health-cmd="pg_isready -U build_empire -d build_empire"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
