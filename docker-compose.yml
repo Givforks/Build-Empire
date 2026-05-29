@@ -13,7 +13,7 @@ services:
       DATA_DIR: /app/data
       ADMIN_USERNAME: ${ADMIN_USERNAME:-GivenchiCodes}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Givenchi1@@@@@}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-build_empire}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-build_empire}
+      DATABASE_URL: ${DATABASE_URL:-}
       AUTO_RUN_MIGRATIONS: 'true'
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}

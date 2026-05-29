@@ -2,10 +2,10 @@ import { config } from './config.js';
 
 let mod;
 if (config.DATABASE_URL) {
-  // eslint-disable-next-line import/no-unresolved, import/extensions
+   
   mod = await import('./db-pg.js');
 } else {
-  // eslint-disable-next-line import/no-unresolved, import/extensions
+   
   mod = await import('./db-file.js');
 }
 

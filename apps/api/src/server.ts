@@ -159,18 +159,18 @@ function publicUser(user: any) {
   };
 }
 
-function roleSafeAppointment(appointment: any, role: Role) {
-  const superuser = appointment.superuserId
-    ? database.findUserById(appointment.superuserId)
-    : undefined;
-  if (role === 'admin') {
-    return { ...appointment, superuser };
+  async function roleSafeAppointment(appointment: any, role: Role) {
+    const superuser = appointment.superuserId
+      ? await Promise.resolve(database.findUserById(appointment.superuserId))
+      : undefined;
+    if (role === 'admin') {
+      return { ...appointment, superuser };
+    }
+    return {
+      ...appointment,
+      superuser: maskSuperuser(superuser),
+    };
   }
-  return {
-    ...appointment,
-    superuser: maskSuperuser(superuser),
-  };
-}
 
 function toRelativePath(filePath: string) {
   return path.relative(process.cwd(), filePath);
@@ -283,7 +283,7 @@ export function createApp() {
   if (config.SENTRY_DSN) {
     try {
       Sentry.init({ dsn: config.SENTRY_DSN, environment: config.NODE_ENV });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const handlers: any = (Sentry as any).Handlers || (Sentry as any).handler || null;
       if (handlers && handlers.requestHandler) {
         app.use(handlers.requestHandler());
@@ -301,7 +301,7 @@ export function createApp() {
       const timestamp = new Date().toISOString();
       const log = `${timestamp} ${method} ${path} ${status} ${duration}ms\n`;
       fs.appendFileSync(path === '/health' ? 'logs/health.log' : 'logs/access.log', log);
-    } catch (e) {
+    } catch {
       // ignore logging errors
     }
   }
@@ -361,7 +361,7 @@ export function createApp() {
       try {
         res.set('Content-Type', client.register.contentType);
         res.send(await client.register.metrics());
-      } catch (err) {
+      } catch {
         res.status(500).send('Failed to collect metrics');
       }
     });
@@ -422,9 +422,9 @@ export function createApp() {
     }
   });
 
-  app.get('/api/me', requireAuth, (req, res) => {
+  app.get('/api/me', requireAuth, async (req, res) => {
     const auth = (req as any).auth;
-    const user = database.findUserById(auth.userId);
+    const user = await Promise.resolve(database.findUserById(auth.userId));
     if (!user) return res.status(404).json({ error: 'User not found' });
     return res.json({
       id: user.id,
@@ -437,24 +437,26 @@ export function createApp() {
     });
   });
 
-  app.post('/api/auth/signup', (req, res) => {
+  app.post('/api/auth/signup', async (req, res) => {
     const parsed = signupSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten() });
     }
 
-    if (database.findUserByEmail(parsed.data.email)) {
+    if (await Promise.resolve(database.findUserByEmail(parsed.data.email))) {
       return res.status(409).json({ error: 'Email already exists' });
     }
 
-    const user = database.createUser({
+    const user = await Promise.resolve(
+      database.createUser({
       role: 'client',
       email: parsed.data.email,
       fullName: parsed.data.fullName,
       state: parsed.data.state,
       passwordHash: hashSync(parsed.data.password, 10),
       isActive: true,
-    });
+      })
+    );
 
     const token = signToken({ userId: user.id, role: 'client' });
     return res.status(201).json({ token, userId: user.id, role: 'client' });
@@ -469,14 +471,15 @@ export function createApp() {
     skipSuccessfulRequests: true,
   });
 
-  app.post('/api/auth/login', bruteForceProtection, (req, res) => {
+  app.post('/api/auth/login', bruteForceProtection, async (req, res) => {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten() });
     }
 
-    const user = database.findUserByEmail(parsed.data.email);
-    if (!user || !compareSync(parsed.data.password, user.passwordHash)) {
+    const user = await Promise.resolve(database.findUserByEmail(parsed.data.email));
+    const storedHash = user ? (user.passwordHash || user.password_hash) : undefined;
+    if (!user || typeof storedHash !== 'string' || !compareSync(parsed.data.password, storedHash)) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -484,14 +487,15 @@ export function createApp() {
     return res.json({ token, role: user.role, userId: user.id });
   });
 
-  app.post('/api/auth/admin-login', bruteForceProtection, (req, res) => {
+  app.post('/api/auth/admin-login', bruteForceProtection, async (req, res) => {
     const parsed = adminLoginSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten() });
     }
 
-    const admin = database.findAdminByUsername(parsed.data.username);
-    if (!admin || !compareSync(parsed.data.password, admin.passwordHash)) {
+    const admin = await Promise.resolve(database.findAdminByUsername(parsed.data.username));
+    const storedHash = admin ? (admin.passwordHash || admin.password_hash) : undefined;
+    if (!admin || typeof storedHash !== 'string' || !compareSync(parsed.data.password, storedHash)) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -499,18 +503,15 @@ export function createApp() {
     return res.json({ token, role: 'admin', userId: admin.id });
   });
 
-  app.post('/api/auth/superuser-login', bruteForceProtection, (req, res) => {
+  app.post('/api/auth/superuser-login', bruteForceProtection, async (req, res) => {
     const parsed = superuserLoginSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten() });
     }
 
-    const user = database.findUserByEmail(parsed.data.email);
-    if (
-      !user ||
-      user.role !== 'superuser' ||
-      !compareSync(parsed.data.password, user.passwordHash)
-    ) {
+    const user = await Promise.resolve(database.findUserByEmail(parsed.data.email));
+    const storedHash = user ? (user.passwordHash || user.password_hash) : undefined;
+    if (!user || user.role !== 'superuser' || typeof storedHash !== 'string' || !compareSync(parsed.data.password, storedHash)) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -518,20 +519,22 @@ export function createApp() {
     return res.json({ token, role: 'superuser', userId: user.id });
   });
 
-  app.get('/api/admin/users', requireAuth, requireRole('admin'), (req, res) => {
+  app.get('/api/admin/users', requireAuth, requireRole('admin'), async (req, res) => {
     const role = typeof req.query.role === 'string' ? req.query.role : undefined;
     const list =
-      role === 'client' || role === 'superuser' ? database.listUsers(role) : database.listUsers();
-    return res.json(list.map((user: any) => publicUser(user)));
+      role === 'client' || role === 'superuser'
+        ? await Promise.resolve(database.listUsers(role))
+        : await Promise.resolve(database.listUsers());
+    return res.json((list as any[]).map((user: any) => publicUser(user)));
   });
 
-  app.post('/api/admin/users', requireAuth, requireRole('admin'), (req, res) => {
+  app.post('/api/admin/users', requireAuth, requireRole('admin'), async (req, res) => {
     const parsed = adminUserSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten() });
     }
 
-    if (database.findUserByEmail(parsed.data.email)) {
+    if (await Promise.resolve(database.findUserByEmail(parsed.data.email))) {
       return res.status(409).json({ error: 'Email already exists' });
     }
 
@@ -544,7 +547,8 @@ export function createApp() {
         .json({ error: 'rank and specializations are required for superusers' });
     }
 
-    const created = database.createUser({
+    const created = await Promise.resolve(
+      database.createUser({
       role: parsed.data.role,
       email: parsed.data.email,
       username: parsed.data.role === 'superuser' ? undefined : parsed.data.username,
@@ -554,24 +558,24 @@ export function createApp() {
       specializations: parsed.data.role === 'superuser' ? parsed.data.specializations : undefined,
       passwordHash: hashSync(parsed.data.password, 10),
       isActive: parsed.data.isActive ?? true,
-    });
+      })
+    );
 
     return res.status(201).json(publicUser(created));
   });
 
-  app.patch('/api/admin/users/:id', requireAuth, requireRole('admin'), (req, res) => {
+  app.patch('/api/admin/users/:id', requireAuth, requireRole('admin'), async (req, res) => {
     const parsed = adminUserUpdateSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten() });
     }
-
-    const existing = database.findUserById(req.params.id);
+    const existing = await Promise.resolve(database.findUserById(req.params.id));
     if (!existing) return res.status(404).json({ error: 'User not found' });
     if (existing.role === 'admin') {
       return res.status(403).json({ error: 'Admin accounts cannot be modified here' });
     }
-
-    const updated = database.updateUser(existing.id, {
+    const updated = await Promise.resolve(
+      database.updateUser(existing.id, {
       email: parsed.data.email ?? existing.email,
       username: parsed.data.username ?? existing.username,
       fullName: parsed.data.fullName ?? existing.fullName,
@@ -582,38 +586,39 @@ export function createApp() {
       passwordHash: parsed.data.password
         ? hashSync(parsed.data.password, 10)
         : existing.passwordHash,
-    } as any);
+      } as any)
+    );
 
     return res.json(publicUser(updated));
   });
 
-  app.delete('/api/admin/users/:id', requireAuth, requireRole('admin'), (req, res) => {
-    const existing = database.findUserById(req.params.id);
+  app.delete('/api/admin/users/:id', requireAuth, requireRole('admin'), async (req, res) => {
+    const existing = await Promise.resolve(database.findUserById(req.params.id));
     if (!existing) return res.status(404).json({ error: 'User not found' });
     if (existing.role === 'admin') {
       return res.status(403).json({ error: 'Admin accounts cannot be deleted here' });
     }
 
-    const removed = database.deleteUser(existing.id);
+    const removed = await Promise.resolve(database.deleteUser(existing.id));
     return res.json(publicUser(removed));
   });
 
-  app.get('/api/admin/superusers', requireAuth, requireRole('admin'), (_req, res) => {
-    const superusers = database.findSuperusers();
-    return res.json(superusers.map((user: any) => publicUser(user)));
+  app.get('/api/admin/superusers', requireAuth, requireRole('admin'), async (_req, res) => {
+    const superusers = await Promise.resolve(database.findSuperusers());
+    return res.json((superusers as any[]).map((user: any) => publicUser(user)));
   });
 
-  app.post('/api/admin/superusers', requireAuth, requireRole('admin'), (req, res) => {
+  app.post('/api/admin/superusers', requireAuth, requireRole('admin'), async (req, res) => {
     const parsed = createSuperuserSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten() });
     }
-
-    if (database.findUserByEmail(parsed.data.email)) {
+    if (await Promise.resolve(database.findUserByEmail(parsed.data.email))) {
       return res.status(409).json({ error: 'Email already exists' });
     }
 
-    const superuser = database.createUser({
+    const superuser = await Promise.resolve(
+      database.createUser({
       role: 'superuser',
       email: parsed.data.email,
       fullName: parsed.data.fullName,
@@ -622,7 +627,8 @@ export function createApp() {
       state: parsed.data.state,
       passwordHash: hashSync(parsed.data.password, 10),
       isActive: true,
-    });
+      })
+    );
 
     return res.status(201).json(publicUser(superuser));
   });
@@ -634,16 +640,16 @@ export function createApp() {
     }
 
     const auth = (req as any).auth;
-    const admin = database.findFirstAdmin();
+    const admin = await Promise.resolve(database.findFirstAdmin());
     if (!admin) {
       return res.status(500).json({ error: 'No admin configured' });
     }
 
     const candidateSuperuser = parsed.data.superuserId
-      ? database.findUserById(parsed.data.superuserId)
-      : database.findSuperusers()[0];
+      ? await Promise.resolve(database.findUserById(parsed.data.superuserId))
+      : (await Promise.resolve(database.findSuperusers()))[0];
 
-    const appointment = database.createAppointment({
+    const appointment = await Promise.resolve(database.createAppointment({
       clientId: auth.userId,
       adminId: admin.id,
       status: 'PENDING_ADMIN_REVIEW',
@@ -652,7 +658,7 @@ export function createApp() {
       superuserId: candidateSuperuser?.id,
       attachments: [],
       summaryEmailStatus: 'PENDING',
-    });
+    }));
 
     // Send confirmation email to client
     const client = database.findUserById(auth.userId);
@@ -667,11 +673,17 @@ export function createApp() {
     return res.status(201).json({ id: appointment.id });
   });
 
-  app.get('/api/appointments', requireAuth, (req, res) => {
-    const auth = (req as any).auth;
-    const list = database.listAppointmentsForRole(auth.userId, auth.role);
-    const payload = list.map((item) => roleSafeAppointment(item, auth.role));
-    return res.json(payload);
+  app.get('/api/appointments', requireAuth, async (req, res) => {
+    try {
+      const auth = (req as any).auth;
+      const maybe = database.listAppointmentsForRole(auth.userId, auth.role);
+      const list = maybe instanceof Promise ? await maybe : maybe;
+      const payload = await Promise.all(list.map((item: any) => roleSafeAppointment(item, auth.role)));
+      return res.json(payload);
+    } catch (err) {
+      console.error('Failed listing appointments:', err);
+      return res.status(500).json({ error: 'Failed to list appointments' });
+    }
   });
 
   app.post('/api/appointments/:id/reschedule', requireAuth, requireRole('client'), (req, res) => {
@@ -703,24 +715,26 @@ export function createApp() {
     return res.status(201).json({ rescheduleId: reschedule.id });
   });
 
-  app.post('/api/admin/appointments/:id/forward', requireAuth, requireRole('admin'), (req, res) => {
+  app.post('/api/admin/appointments/:id/forward', requireAuth, requireRole('admin'), async (req, res) => {
     const parsed = forwardSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten() });
     }
 
-    const appointment = database.findAppointmentById(req.params.id);
+    const appointment = await Promise.resolve(database.findAppointmentById(req.params.id));
     if (!appointment) return res.status(404).json({ error: 'Appointment not found' });
 
-    const superuser = database.findUserById(parsed.data.superuserId);
+    const superuser = await Promise.resolve(database.findUserById(parsed.data.superuserId));
     if (!superuser || superuser.role !== 'superuser') {
       return res.status(404).json({ error: 'Superuser not found' });
     }
 
-    const updated = database.updateAppointment(appointment.id, {
-      superuserId: superuser.id,
-      status: 'FORWARDED_TO_SUPERUSER',
-    });
+    const updated = await Promise.resolve(
+      database.updateAppointment(appointment.id, {
+        superuserId: superuser.id,
+        status: 'FORWARDED_TO_SUPERUSER',
+      })
+    );
 
     return res.json({ ok: true, appointment: updated });
   });
@@ -729,20 +743,20 @@ export function createApp() {
     '/api/superuser/appointments/:id/respond',
     requireAuth,
     requireRole('superuser'),
-    (req, res) => {
+    async (req, res) => {
       const parsed = superuserResponseSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.flatten() });
       }
 
       const auth = (req as any).auth;
-      const appointment = database.findAppointmentById(req.params.id);
+      const appointment = await Promise.resolve(database.findAppointmentById(req.params.id));
       if (!appointment || appointment.superuserId !== auth.userId) {
         return res.status(404).json({ error: 'Appointment not found' });
       }
 
       const status = parsed.data.accepted ? 'SUPERUSER_RESPONDED' : 'REJECTED';
-      const updated = database.updateAppointment(appointment.id, { status });
+      const updated = await Promise.resolve(database.updateAppointment(appointment.id, { status }));
 
       return res.json({ ok: true, appointment: updated });
     }
@@ -758,7 +772,7 @@ export function createApp() {
         return res.status(400).json({ error: parsed.error.flatten() });
       }
 
-      const appointment = database.findAppointmentById(req.params.id);
+      const appointment = await Promise.resolve(database.findAppointmentById(req.params.id));
       if (!appointment) return res.status(404).json({ error: 'Appointment not found' });
 
       if (parsed.data.decision === 'APPROVED' && !parsed.data.adminDecidedDateTime) {
@@ -767,17 +781,19 @@ export function createApp() {
 
       const sourceAdminId = (req as any).auth.userId;
       const resolvedSuperuser = appointment.superuserId
-        ? database.findUserById(appointment.superuserId)
-        : database.findSuperusers()[0];
+        ? await Promise.resolve(database.findUserById(appointment.superuserId))
+        : (await Promise.resolve(database.findSuperusers()))[0];
 
-      const updated = database.updateAppointment(appointment.id, {
-        status: parsed.data.decision,
-        adminDecidedDateTime: parsed.data.adminDecidedDateTime,
-        superuserId:
-          parsed.data.decision === 'APPROVED'
-            ? resolvedSuperuser?.id || appointment.superuserId
-            : appointment.superuserId,
-      });
+      const updated = await Promise.resolve(
+        database.updateAppointment(appointment.id, {
+          status: parsed.data.decision,
+          adminDecidedDateTime: parsed.data.adminDecidedDateTime,
+          superuserId:
+            parsed.data.decision === 'APPROVED'
+              ? resolvedSuperuser?.id || appointment.superuserId
+              : appointment.superuserId,
+        })
+      );
 
       if (!updated) {
         return res.status(500).json({ error: 'Failed to update appointment' });

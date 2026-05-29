@@ -9,4 +9,4 @@ apps/api/tests/*.js
 apps/api/data/
 apps/api/data-smoke/
 secrets/*.txt
-infra/certs/
+infra/certs/releases/*.tar
