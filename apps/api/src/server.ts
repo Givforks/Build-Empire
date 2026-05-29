@@ -301,7 +301,7 @@ export function createApp() {
       const timestamp = new Date().toISOString();
       const log = `${timestamp} ${method} ${path} ${status} ${duration}ms\n`;
       fs.appendFileSync(path === '/health' ? 'logs/health.log' : 'logs/access.log', log);
-    } catch (e) {
+    } catch {
       // ignore logging errors
     }
   }
@@ -361,7 +361,7 @@ export function createApp() {
       try {
         res.set('Content-Type', client.register.contentType);
         res.send(await client.register.metrics());
-      } catch (err) {
+      } catch {
         res.status(500).send('Failed to collect metrics');
       }
     });
