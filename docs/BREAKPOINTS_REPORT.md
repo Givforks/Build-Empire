@@ -61,3 +61,13 @@ The VS Code Server workspace storage contains Copilot memory files referencing b
 - Current branch in workspace: `chore/image-scan`.
 - User asked to save this as a breakpoint; resume from local run/deploy guidance or production deployment next."
 
+## Local Verification (automated)
+
+- Smoke test run: 2026-06-23T17:23:48Z
+  - Script: `scripts/smoke-test.sh`
+  - Result: PASS
+  - API health: {"ok":true,"env":"production","time":"2026-06-23T17:23:48.680Z"}
+  - Created appointment id: `8b19ba0c-a9dd-40b5-b077-83e541ca1bf4`
+
+Notes: the smoke test starts a transient API instance on port 4010 (uses compiled `apps/api/dist/index.js`), performs signup/login, creates an appointment, invokes the AI deepseek endpoint, and validates generated attachments. All checks passed locally.
+
