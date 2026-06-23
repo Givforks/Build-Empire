@@ -234,17 +234,45 @@ export function initializeSeedData() {
     });
   }
 
-  const hasSuperuser = db.users.some((u) => u.role === 'superuser');
-  if (!hasSuperuser) {
+  const seedSuperusers = [
+    {
+      email: 'superuser@example.com',
+      fullName: 'Senior Meeting Specialist',
+      rank: 'Senior Consultant',
+      specializations: ['AI Strategy', 'Product Leadership'],
+    },
+    {
+      email: 'givens.abraham@example.com',
+      fullName: 'Givens Emmah Abraham',
+      rank: 'Chief Strategy Officer',
+      specializations: ['Strategic Planning', 'Business Development', 'Executive Coaching'],
+    },
+    {
+      email: 'melroy@example.com',
+      fullName: 'Melroy',
+      rank: 'Senior Advisor',
+      specializations: ['Market Analysis', 'Operations Optimization', 'Technology Strategy'],
+    },
+    {
+      email: 'adam.alsaleh@example.com',
+      fullName: 'Adam Al-Saleh',
+      rank: 'Principal Consultant',
+      specializations: ['AI Strategy', 'Product Innovation', 'Leadership Development'],
+    },
+  ];
+
+  for (const seed of seedSuperusers) {
+    const exists = db.users.some((u) => u.role === 'superuser' && u.email === seed.email);
+    if (exists) continue;
     db.users.push({
       id: uuid(),
       role: 'superuser',
-      email: 'superuser@example.com',
+      email: seed.email,
       passwordHash: hashSync('TempSuper123!', 10),
-      fullName: 'Senior Meeting Specialist',
-      rank: 'Senior Consultant',
+      fullName: seed.fullName,
+      rank: seed.rank,
       state: 'Lagos',
-      specializations: ['AI Strategy', 'Product Leadership'],
+      specializations: seed.specializations,
       isActive: true,
       createdAt: now(),
     });

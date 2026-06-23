@@ -442,16 +442,45 @@ export async function initializeSeedData() {
     } as any);
   }
 
-  const superusers = await database.findSuperusers();
-  if (!superusers || superusers.length === 0) {
-    await database.createUser({
-      role: 'superuser',
+  const superusers = (await database.findSuperusers()) || [];
+  const existingEmails = new Set(superusers.map((u: any) => (u.email || '').toLowerCase()));
+  const seedSuperusers = [
+    {
       email: 'superuser@example.com',
-      passwordHash: bcrypt.hashSync('TempSuper123!', 10) as any,
       fullName: 'Senior Meeting Specialist',
       rank: 'Senior Consultant',
-      state: 'Lagos',
       specializations: ['AI Strategy', 'Product Leadership'],
+    },
+    {
+      email: 'givens.abraham@example.com',
+      fullName: 'Givens Emmah Abraham',
+      rank: 'Chief Strategy Officer',
+      specializations: ['Strategic Planning', 'Business Development', 'Executive Coaching'],
+    },
+    {
+      email: 'melroy@example.com',
+      fullName: 'Melroy',
+      rank: 'Senior Advisor',
+      specializations: ['Market Analysis', 'Operations Optimization', 'Technology Strategy'],
+    },
+    {
+      email: 'adam.alsaleh@example.com',
+      fullName: 'Adam Al-Saleh',
+      rank: 'Principal Consultant',
+      specializations: ['AI Strategy', 'Product Innovation', 'Leadership Development'],
+    },
+  ];
+
+  for (const seed of seedSuperusers) {
+    if (existingEmails.has(seed.email.toLowerCase())) continue;
+    await database.createUser({
+      role: 'superuser',
+      email: seed.email,
+      passwordHash: bcrypt.hashSync('TempSuper123!', 10) as any,
+      fullName: seed.fullName,
+      rank: seed.rank,
+      state: 'Lagos',
+      specializations: seed.specializations,
       isActive: true,
     } as any);
   }
